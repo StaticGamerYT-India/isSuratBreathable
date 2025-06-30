@@ -81,3 +81,12 @@ app.get('/api/airquality/history', async (req, res) => {
 app.listen(port, () => {
   console.log(`Server listening at http://localhost:${port}`);
 });
+
+// This part is for local development, Vercel will handle the server.
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(port, () => {
+    console.log(`Server listening at http://localhost:${port}`);
+  });
+}
+
+module.exports = app;
