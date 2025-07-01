@@ -578,7 +578,7 @@
                     const tempDetails = getTempDetails(parseFloat(station.Ambient_Temperature));
                     const humidityDetails = getHumidityDetails(parseFloat(station.Relative_Humidity));
 
-                    const isRaining = parseFloat(station.Rain_Fall) > 0;
+                    const isPM10High = parseFloat(station.PM10) > 1800;
 
                     const stationDiv = document.createElement('div');
                     stationDiv.classList.add('station', 'card');
@@ -589,10 +589,10 @@
 
                     stationDiv.innerHTML = `
                         <h2>Science Center Se Seedha Real Time Result</h2>
-                        ${isRaining ? `
+                        ${isPM10High ? `
                         <div class="info-box">
                            <button class="info-box-dismiss material-symbols-outlined">close</button>
-                           🤙 <strong>Quick Tip:</strong> When it rains, the main AQI might look extra sus & spike up. That's just the rain particles going wild, Check the "AQI (w/o PM10)".
+                           🤙 <strong>Quick Tip:</strong> The PM10 value is unusually high, which can spike the main AQI. This might be due to dust or other large particles. Check the "AQI (w/o PM10)" for a clearer picture of gaseous pollutants.
                         </div>
                         ` : ''}
                         <p class="last-updated"><strong>Last Updated:</strong> ${formattedDate} ${formattedTime}</p>
@@ -602,7 +602,7 @@
                                 <div class="metric-value">${finalAqi}</div>
                                 <div class="metric-desc">${aqiDetails.summary}</div>
                             </div>
-                            ${isRaining ? `
+                            ${isPM10High ? `
                             <div class="metric-card aqi-card" style="background-color: ${aqiDetailsWithoutPm10.color};">
                                 <div class="metric-title">AQI (w/o PM10)</div>
                                 <div class="metric-value">${finalAqiWithoutPm10}</div>
