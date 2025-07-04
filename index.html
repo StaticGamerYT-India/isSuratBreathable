@@ -562,7 +562,7 @@
                     function getTempDetails(temp) {
                         if (temp < 15) return { summary: "Feels like: Thandi me thande pani se nahaana.", color: "#81d4fa" };
                         if (temp < 25) return { summary: "Feels like: Perfect sweater weather.", color: "#80cbc4" };
-                        if (temp < 35) return { summary: "Feels like: Dumas time!", color: "#ffb74d" };
+                        if (temp < 35) return { summary: "Feels like: Dumas me bhajiya wala time!", color: "#ffb74d" };
                         return { summary: "Feels like: An actual oven, sigh.", color: "#e57373" };
                     }
 
@@ -570,7 +570,7 @@
                         if (humidity < 30) return { summary: "Feels like: The Sahara. Stay hydrated.", color: "#fff176" };
                         if (humidity < 60) return { summary: "Feels like: Just right. Goldilocks would approve.", color: "#9575cd" };
                         if (humidity < 80) return { summary: "Feels like: A warm, wet hug.", color: "#4db6ac" };
-                        return { summary: "Feels like: You could swim through the air.", color: "#64b5f6" };
+                        return { summary: "Feels like: Saans loge to lungs me paani bhar jayega.", color: "#64b5f6" };
                     }
 
                     const aqiDetails = getAqiDetails(finalAqi);
@@ -634,7 +634,7 @@
                             <div class="weather">
                                 <h3>Other Weather Details</h3>
                                 <ul>
-                                    <li><strong>Wind Speed:</strong> <span>${station.Wind_Speed} m/s</span></li>
+                                    <li><strong>Wind Speed:</strong> <span>${station.Wind_Speed} Km/s</span></li>
                                     <li><strong>Wind Direction:</strong> <span>${station.Wind_Direction}°</span></li>
                                     <li><strong>Rain Fall:</strong> <span>${station.Rain_Fall} cm</span></li>
                                     <li><strong>Solar Radiation:</strong> <span>${station.Solar_Radiation} W/m²</span></li>
