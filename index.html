@@ -531,9 +531,9 @@
                             { i_lo: 301, i_hi: 400, bp_lo: 281, bp_hi: 400 }, { i_lo: 401, i_hi: 500, bp_lo: 401, bp_hi: 1000 },
                         ],
                         co: [
-                            { i_lo: 0, i_hi: 50, bp_lo: 0, bp_hi: 1.0 }, { i_lo: 51, i_hi: 100, bp_lo: 1.1, bp_hi: 2.0 },
-                            { i_lo: 101, i_hi: 200, bp_lo: 2.1, bp_hi: 10 }, { i_lo: 201, i_hi: 300, bp_lo: 11, bp_hi: 17 },
-                            { i_lo: 301, i_hi: 400, bp_lo: 18, bp_hi: 34 }, { i_lo: 401, i_hi: 500, bp_lo: 35, bp_hi: 100 },
+                            { i_lo: 0, i_hi: 50, bp_lo: 0, bp_hi: 1.0 }, { i_lo: 51, i_hi: 100, bp_lo: 1.0, bp_hi: 2.0 },
+                            { i_lo: 101, i_hi: 200, bp_lo: 2.0, bp_hi: 10 }, { i_lo: 201, i_hi: 300, bp_lo: 10, bp_hi: 17 },
+                            { i_lo: 301, i_hi: 400, bp_lo: 17, bp_hi: 34 }, { i_lo: 401, i_hi: 500, bp_lo: 34, bp_hi: 100 },
                         ],
                     };
 
@@ -598,7 +598,7 @@
                     const tempDetails = getTempDetails(ambientTemp);
                     const humidityDetails = getHumidityDetails(relativeHumidity);
 
-                    const isPM10High = pm10 > 1800;
+                    const isPM10High = pm10 > 250;
 
                     const stationDiv = document.createElement('div');
                     stationDiv.classList.add('station', 'card');
