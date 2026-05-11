@@ -59,6 +59,14 @@
             transition: background-color 0.3s ease, color 0.3s ease;
         }
 
+        body[data-theme-mode="dark"] {
+            color-scheme: dark;
+        }
+
+        body[data-theme-mode="light"] {
+            color-scheme: light;
+        }
+
         body.dark-mode {
             --background: var(--dark-background);
             --surface: var(--dark-surface);
@@ -421,10 +429,136 @@
             const themeToggle = document.getElementById('theme-toggle');
             let aqiChart = null;
 
+            const paletteSeeds = [
+                {
+                    light: {
+                        background: '#f4f1eb',
+                        surface: '#fffaf4',
+                        onSurface: '#241f1b',
+                        primary: '#7b5b3d',
+                        onPrimary: '#ffffff',
+                        secondaryContainer: '#eadbcf',
+                        onSecondaryContainer: '#2b1f16',
+                        outline: '#8d7f74',
+                        surfaceVariant: '#e7ded4',
+                        shadowSm: '0 2px 4px rgba(64, 44, 28, 0.08)',
+                        shadowMd: '0 4px 14px rgba(64, 44, 28, 0.12)'
+                    },
+                    dark: {
+                        background: '#191512',
+                        surface: '#25201c',
+                        onSurface: '#efe7df',
+                        primary: '#d8b08c',
+                        onPrimary: '#3b2717',
+                        secondaryContainer: '#46372d',
+                        onSecondaryContainer: '#f3dfd0',
+                        outline: '#a39387',
+                        surfaceVariant: '#3a322d',
+                        shadowSm: '0 2px 4px rgba(0, 0, 0, 0.22)',
+                        shadowMd: '0 4px 14px rgba(0, 0, 0, 0.32)'
+                    }
+                },
+                {
+                    light: {
+                        background: '#eff5f7',
+                        surface: '#fbfeff',
+                        onSurface: '#182126',
+                        primary: '#2f6f83',
+                        onPrimary: '#ffffff',
+                        secondaryContainer: '#d8ebf1',
+                        onSecondaryContainer: '#13242b',
+                        outline: '#71878f',
+                        surfaceVariant: '#dfe9ec',
+                        shadowSm: '0 2px 4px rgba(18, 47, 57, 0.08)',
+                        shadowMd: '0 4px 14px rgba(18, 47, 57, 0.12)'
+                    },
+                    dark: {
+                        background: '#12181b',
+                        surface: '#1c2327',
+                        onSurface: '#e4eef2',
+                        primary: '#89c2d9',
+                        onPrimary: '#103140',
+                        secondaryContainer: '#29414c',
+                        onSecondaryContainer: '#d7edf5',
+                        outline: '#8ca1aa',
+                        surfaceVariant: '#28343a',
+                        shadowSm: '0 2px 4px rgba(0, 0, 0, 0.22)',
+                        shadowMd: '0 4px 14px rgba(0, 0, 0, 0.32)'
+                    }
+                },
+                {
+                    light: {
+                        background: '#f5f6ee',
+                        surface: '#ffffff',
+                        onSurface: '#23251d',
+                        primary: '#5d7a34',
+                        onPrimary: '#ffffff',
+                        secondaryContainer: '#dfe8cd',
+                        onSecondaryContainer: '#1e260f',
+                        outline: '#7e8d68',
+                        surfaceVariant: '#e7ecd9',
+                        shadowSm: '0 2px 4px rgba(42, 54, 20, 0.08)',
+                        shadowMd: '0 4px 14px rgba(42, 54, 20, 0.12)'
+                    },
+                    dark: {
+                        background: '#161913',
+                        surface: '#20251d',
+                        onSurface: '#e7eddf',
+                        primary: '#bed48e',
+                        onPrimary: '#283312',
+                        secondaryContainer: '#364026',
+                        onSecondaryContainer: '#e4efd0',
+                        outline: '#94a483',
+                        surfaceVariant: '#2d3527',
+                        shadowSm: '0 2px 4px rgba(0, 0, 0, 0.22)',
+                        shadowMd: '0 4px 14px rgba(0, 0, 0, 0.32)'
+                    }
+                }
+            ];
+
+            function hashString(value) {
+                let hash = 0;
+                for (let index = 0; index < value.length; index += 1) {
+                    hash = (hash << 5) - hash + value.charCodeAt(index);
+                    hash |= 0;
+                }
+                return Math.abs(hash);
+            }
+
+            function applyPalette(palette, isDark) {
+                const theme = isDark ? palette.dark : palette.light;
+                body.style.setProperty('--background', theme.background);
+                body.style.setProperty('--surface', theme.surface);
+                body.style.setProperty('--on-surface', theme.onSurface);
+                body.style.setProperty('--primary', theme.primary);
+                body.style.setProperty('--on-primary', theme.onPrimary);
+                body.style.setProperty('--secondary-container', theme.secondaryContainer);
+                body.style.setProperty('--on-secondary-container', theme.onSecondaryContainer);
+                body.style.setProperty('--outline', theme.outline);
+                body.style.setProperty('--surface-variant', theme.surfaceVariant);
+                body.style.setProperty('--shadow-sm', theme.shadowSm);
+                body.style.setProperty('--shadow-md', theme.shadowMd);
+                body.dataset.themeMode = isDark ? 'dark' : 'light';
+            }
+
+            function getAdaptivePalette() {
+                const deviceFingerprint = [
+                    navigator.language || '',
+                    navigator.platform || '',
+                    `${window.screen.width}x${window.screen.height}`,
+                    `${window.devicePixelRatio || 1}`,
+                    new Date().getTimezoneOffset().toString()
+                ].join('|');
+
+                const paletteIndex = hashString(deviceFingerprint) % paletteSeeds.length;
+                return paletteSeeds[paletteIndex];
+            }
+
             // --- THEME AND TOGGLE LOGIC ---
             function applyTheme(isDark) {
                 body.classList.toggle('dark-mode', isDark);
                 localStorage.setItem('theme', isDark ? 'dark' : 'light');
+                applyPalette(getAdaptivePalette(), isDark);
                 if (aqiChart) {
                     aqiChart.options = getChartOptions();
                     aqiChart.update();
