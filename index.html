@@ -578,16 +578,16 @@
                     }
 
                     function getTempDetails(temp) {
-                        if (temp < 15) return { summary: "Feels like: Thandi me thande pani se nahaana.", color: "#81d4fa" };
-                        if (temp < 25) return { summary: "Feels like: Perfect sweater weather.", color: "#80cbc4" };
-                        if (temp < 35) return { summary: "Feels like: Dumas me bhajiya wala time!", color: "#ffb74d" };
-                        return { summary: "Feels like: An actual oven, sigh.", color: "#e57373" };
+                        if (temp < 15) return { summary: "Thandi me thande pani se nahaana.", color: "#81d4fa" };
+                        if (temp < 25) return { summary: "Perfect sweater weather.", color: "#80cbc4" };
+                        if (temp < 35) return { summary: "Dumas me bhajiya wala time!", color: "#ffb74d" };
+                        return { summary: "Bafaaro thay chhe yaar", color: "#e57373" };
                     }
 
                     function getHumidityDetails(humidity) {
-                        if (humidity < 30) return { summary: "Feels like: The Sahara. Stay hydrated.", color: "#fff176" };
-                        if (humidity < 60) return { summary: "Feels like: Just right", color: "#9575cd" };
-                        if (humidity < 80) return { summary: "Feels like: A warm, wet hug.", color: "#4db6ac" };
+                        if (humidity < 30) return { summary: "The Sahara. Stay hydrated.", color: "#fff176" };
+                        if (humidity < 60) return { summary: "Just right", color: "#9575cd" };
+                        if (humidity < 80) return { summary: "A warm, wet hug.", color: "#4db6ac" };
                         return { summary: "Saas loge to lungs me paani bhar jayega.", color: "#64b5f6" };
                     }
 
