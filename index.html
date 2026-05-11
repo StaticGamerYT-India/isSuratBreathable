@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Surat's Real Air Quality</title>
+    <title>Surat Ki Asli Air Quality</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌬️</text></svg>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -534,6 +534,64 @@
                     .replace(/'/g, '&#39;');
             }
 
+            function clamp(value, min, max) {
+                return Math.min(max, Math.max(min, value));
+            }
+
+            function hexToRgb(hex) {
+                const normalized = hex.replace('#', '');
+                const fullHex = normalized.length === 3
+                    ? normalized.split('').map(char => char + char).join('')
+                    : normalized;
+
+                return {
+                    r: parseInt(fullHex.slice(0, 2), 16),
+                    g: parseInt(fullHex.slice(2, 4), 16),
+                    b: parseInt(fullHex.slice(4, 6), 16)
+                };
+            }
+
+            function rgbToHex({ r, g, b }) {
+                return `#${[r, g, b]
+                    .map(channel => Math.round(clamp(channel, 0, 255)).toString(16).padStart(2, '0'))
+                    .join('')}`;
+            }
+
+            function mixColors(startColor, endColor, factor) {
+                const start = hexToRgb(startColor);
+                const end = hexToRgb(endColor);
+                return rgbToHex({
+                    r: start.r + (end.r - start.r) * factor,
+                    g: start.g + (end.g - start.g) * factor,
+                    b: start.b + (end.b - start.b) * factor
+                });
+            }
+
+            function getGradientColor(value, stops) {
+                if (!stops || stops.length === 0) {
+                    return '#888888';
+                }
+
+                const sortedStops = [...stops].sort((a, b) => a.value - b.value);
+                const clampedValue = clamp(value, sortedStops[0].value, sortedStops[sortedStops.length - 1].value);
+
+                if (clampedValue <= sortedStops[0].value) {
+                    return sortedStops[0].color;
+                }
+
+                for (let index = 0; index < sortedStops.length - 1; index += 1) {
+                    const leftStop = sortedStops[index];
+                    const rightStop = sortedStops[index + 1];
+
+                    if (clampedValue <= rightStop.value) {
+                        const progress = (clampedValue - leftStop.value) / (rightStop.value - leftStop.value);
+                        return mixColors(leftStop.color, rightStop.color, progress);
+                    }
+                }
+
+                return sortedStops[sortedStops.length - 1].color;
+            }
+
             // --- DATA FETCHING AND RENDERING ---
             async function fetchData() {
                 try {
@@ -609,26 +667,52 @@
                     );
 
                     function getAqiDetails(aqi) {
-                        if (aqi <= 50) return { summary: "Awesome! Go breathe it all in.", color: "#4CAF50" };
-                        if (aqi <= 100) return { summary: "Theek hai matlab kya hi kar sakte hai", color: "#9CCC65" };
-                        if (aqi <= 200) return { summary: "A bit spicy. Maybe stay inside.", color: "#FFEB3B" };
-                        if (aqi <= 300) return { summary: "Poor. Your lungs are not happy.", color: "#FF9800" };
-                        if (aqi <= 400) return { summary: "Very Poor. Are we on Mars?", color: "#F44336" };
-                        return { summary: "Severe. Just don't breathe, Mu fulaa lo.", color: "#B71C1C" };
+                        const color = getGradientColor(aqi, [
+                            { value: 0, color: '#2e7d32' },
+                            { value: 50, color: '#8bc34a' },
+                            { value: 100, color: '#fdd835' },
+                            { value: 200, color: '#fb8c00' },
+                            { value: 300, color: '#e53935' },
+                            { value: 400, color: '#b71c1c' },
+                            { value: 500, color: '#6d0000' }
+                        ]);
+
+                        if (aqi <= 50) return { summary: "Awesome! Go breathe it all in.", color };
+                        if (aqi <= 100) return { summary: "Theek hai matlab kya hi kar sakte hai", color };
+                        if (aqi <= 200) return { summary: "A bit spicy. Maybe stay inside.", color };
+                        if (aqi <= 300) return { summary: "Poor. Your lungs are not happy.", color };
+                        if (aqi <= 400) return { summary: "Very Poor. Are we on Mars?", color };
+                        return { summary: "Severe. Just don't breathe, Mu fulaa lo.", color };
                     }
 
                     function getTempDetails(temp) {
-                        if (temp < 15) return { summary: "Thandi me thande pani se nahaana.", color: "#81d4fa" };
-                        if (temp < 25) return { summary: "Perfect sweater weather.", color: "#80cbc4" };
-                        if (temp < 35) return { summary: "Dumas me bhajiya wala time!", color: "#ffb74d" };
-                        return { summary: "Bafaaro thay chhe yaar", color: "#e57373" };
+                        const color = getGradientColor(temp, [
+                            { value: 0, color: '#1e88e5' },
+                            { value: 15, color: '#4fc3f7' },
+                            { value: 25, color: '#4db6ac' },
+                            { value: 35, color: '#ffb74d' },
+                            { value: 45, color: '#e53935' }
+                        ]);
+
+                        if (temp < 15) return { summary: "Thandi me thande pani se nahaana.", color };
+                        if (temp < 25) return { summary: "Perfect sweater weather.", color };
+                        if (temp < 35) return { summary: "Dumas me bhajiya wala time!", color };
+                        return { summary: "Bafaaro thay chhe yaar", color };
                     }
 
                     function getHumidityDetails(humidity) {
-                        if (humidity < 30) return { summary: "The Sahara. Stay hydrated.", color: "#fff176" };
-                        if (humidity < 60) return { summary: "Just right", color: "#9575cd" };
-                        if (humidity < 80) return { summary: "A warm, wet hug.", color: "#4db6ac" };
-                        return { summary: "Saas loge to lungs me paani bhar jayega.", color: "#64b5f6" };
+                        const color = getGradientColor(humidity, [
+                            { value: 0, color: '#ffb74d' },
+                            { value: 30, color: '#fff176' },
+                            { value: 60, color: '#4db6ac' },
+                            { value: 80, color: '#64b5f6' },
+                            { value: 100, color: '#1565c0' }
+                        ]);
+
+                        if (humidity < 30) return { summary: "The Sahara. Stay hydrated.", color };
+                        if (humidity < 60) return { summary: "Just right", color };
+                        if (humidity < 80) return { summary: "A warm, wet hug.", color };
+                        return { summary: "Saas loge to lungs me paani bhar jayega.", color };
                     }
 
                     const aqiDetails = getAqiDetails(finalAqi);
