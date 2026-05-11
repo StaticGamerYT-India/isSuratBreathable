@@ -428,6 +428,8 @@
             const body = document.body;
             const themeToggle = document.getElementById('theme-toggle');
             let aqiChart = null;
+            const themeMedia = window.matchMedia('(prefers-color-scheme: dark)');
+            let themePreference = localStorage.getItem('themePreference');
 
             const paletteSeeds = [
                 {
@@ -557,12 +559,22 @@
             // --- THEME AND TOGGLE LOGIC ---
             function applyTheme(isDark) {
                 body.classList.toggle('dark-mode', isDark);
-                localStorage.setItem('theme', isDark ? 'dark' : 'light');
+                body.dataset.themeMode = isDark ? 'dark' : 'light';
                 applyPalette(getAdaptivePalette(), isDark);
                 if (aqiChart) {
                     aqiChart.options = getChartOptions();
                     aqiChart.update();
                 }
+            }
+
+            function syncThemeWithBrowser() {
+                if (themePreference) {
+                    return;
+                }
+
+                const browserPrefersDark = themeMedia.matches;
+                themeToggle.checked = browserPrefersDark;
+                applyTheme(browserPrefersDark);
             }
 
             function initializeTheme() {
@@ -571,17 +583,23 @@
                     return;
                 }
                 
-                const savedTheme = localStorage.getItem('theme');
-                const systemPrefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-                
-                const isInitiallyDark = savedTheme ? savedTheme === 'dark' : systemPrefersDark;
+                const systemPrefersDark = themeMedia.matches;
+                const isInitiallyDark = themePreference ? themePreference === 'dark' : systemPrefersDark;
                 
                 themeToggle.checked = isInitiallyDark;
                 applyTheme(isInitiallyDark);
                 
                 themeToggle.addEventListener('change', () => {
+                    themePreference = themeToggle.checked ? 'dark' : 'light';
+                    localStorage.setItem('themePreference', themePreference);
                     applyTheme(themeToggle.checked);
                 });
+
+                if (typeof themeMedia.addEventListener === 'function') {
+                    themeMedia.addEventListener('change', syncThemeWithBrowser);
+                } else if (typeof themeMedia.addListener === 'function') {
+                    themeMedia.addListener(syncThemeWithBrowser);
+                }
             }
 
             // --- CHARTING LOGIC ---
