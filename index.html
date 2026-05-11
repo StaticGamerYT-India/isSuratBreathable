@@ -600,9 +600,6 @@
 
                     const isPM10High = pm10 > 250;
 
-                    const stationDiv = document.createElement('div');
-                    stationDiv.classList.add('station', 'card');
-
                     const dateMatch = String(station.dtl_date || '').match(/\d+/);
                     const date = dateMatch ? new Date(parseInt(dateMatch[0], 10)) : new Date();
                     const formattedDate = `${String(date.getDate()).padStart(2, '0')}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getFullYear()).slice(-2)}`;
@@ -623,8 +620,11 @@
                         Atmospheric_Pressure: escapeHtml(station.Atmospheric_Pressure)
                     };
 
-                    stationDiv.innerHTML = `
-                        <h2>Science Center Se Seedha Real Time Result</h2>
+                    // Create AQI Card
+                    const aqiCardDiv = document.createElement('div');
+                    aqiCardDiv.classList.add('station', 'card');
+                    aqiCardDiv.innerHTML = `
+                        <h2>Air Quality Index</h2>
                         ${isPM10High ? `
                         <div class="info-box">
                            <button class="info-box-dismiss material-symbols-outlined">close</button>
@@ -667,19 +667,34 @@
                                     <li><strong>CO:</strong> <span>${displayStation.CO} µg/m³</span><span class="material-symbols-outlined pollutant-info-icon" data-pollutant="co">info</span></li>
                                 </ul>
                             </div>
+                        </div>
+                    `;
+                    container.appendChild(aqiCardDiv);
+
+                    // Create Weather Card
+                    const weatherCardDiv = document.createElement('div');
+                    weatherCardDiv.classList.add('station', 'card');
+                    weatherCardDiv.innerHTML = `
+                        <h2>Weather Information</h2>
+                        <div class="details-grid">
                             <div class="weather">
-                                <h3>Other Weather Details</h3>
+                                <h3>Wind & Pressure</h3>
                                 <ul>
                                     <li><strong>Wind Speed:</strong> <span>${displayStation.Wind_Speed} km/h</span></li>
                                     <li><strong>Wind Direction:</strong> <span>${displayStation.Wind_Direction}°</span></li>
+                                    <li><strong>Atmospheric Pressure:</strong> <span>${displayStation.Atmospheric_Pressure} hPa</span></li>
+                                </ul>
+                            </div>
+                            <div class="weather">
+                                <h3>Precipitation & Radiation</h3>
+                                <ul>
                                     <li><strong>Rain Fall:</strong> <span>${displayStation.Rain_Fall} cm</span></li>
                                     <li><strong>Solar Radiation:</strong> <span>${displayStation.Solar_Radiation} W/m²</span></li>
-                                    <li><strong>Atmospheric Pressure:</strong> <span>${displayStation.Atmospheric_Pressure} hPa</span></li>
                                 </ul>
                             </div>
                         </div>
                     `;
-                    container.appendChild(stationDiv);
+                    container.appendChild(weatherCardDiv);
 
                     setupInfoBoxDismiss();
                     setupPollutantTooltips();
