@@ -317,6 +317,12 @@
             margin-top: 10px;
         }
 
+        #chart-container canvas {
+            display: block;
+            width: 100% !important;
+            max-width: 100%;
+        }
+
         footer {
             text-align: center;
             margin-top: 40px;
@@ -362,6 +368,15 @@
 
             .details-grid {
                 grid-template-columns: 1fr;
+            }
+
+            #chart-container {
+                padding: 16px 14px;
+                min-height: 340px;
+            }
+
+            #aqi-chart {
+                height: 280px !important;
             }
 
             .tooltip {
@@ -437,6 +452,7 @@
 
             // --- CHARTING LOGIC ---
             function getChartOptions() {
+                const isMobile = window.innerWidth <= 768;
                 const isDarkMode = body.classList.contains('dark-mode');
                 const styles = getComputedStyle(body);
                 const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
@@ -445,29 +461,53 @@
 
                 return {
                     responsive: true,
+                    maintainAspectRatio: false,
+                    layout: {
+                        padding: {
+                            top: 8,
+                            right: 8,
+                            bottom: 4,
+                            left: 4
+                        }
+                    },
                     plugins: {
                         title: {
                             display: true,
                             text: 'Pichle 24 Ghanto Ka Khel',
-                            font: { size: 18 },
+                            font: { size: isMobile ? 14 : 18 },
                             color: titleColor
                         },
                         legend: {
-                            position: 'top',
-                            labels: { color: textColor }
+                            position: isMobile ? 'bottom' : 'top',
+                            labels: {
+                                color: textColor,
+                                boxWidth: isMobile ? 10 : 12,
+                                boxHeight: isMobile ? 10 : 12,
+                                padding: isMobile ? 10 : 16,
+                                usePointStyle: true,
+                                pointStyle: 'line'
+                            }
                         }
                     },
                     scales: {
                         x: {
                             display: true,
                             title: { display: true, text: 'Date & Time', color: textColor },
-                            ticks: { color: textColor },
+                            ticks: {
+                                color: textColor,
+                                maxRotation: 0,
+                                autoSkip: true,
+                                maxTicksLimit: isMobile ? 4 : 8
+                            },
                             grid: { color: gridColor }
                         },
                         y: {
                             display: true,
                             title: { display: true, text: 'Concentration (µg/m³)', color: textColor },
-                            ticks: { color: textColor },
+                            ticks: {
+                                color: textColor,
+                                maxTicksLimit: isMobile ? 5 : 8
+                            },
                             grid: { color: gridColor }
                         }
                     }
