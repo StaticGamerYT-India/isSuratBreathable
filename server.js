@@ -4,6 +4,16 @@ const path = require('path');
 const app = express();
 const port = 3000;
 
+function buildHeaders(baseHeaders, cookie) {
+  if (!cookie) {
+    return baseHeaders;
+  }
+  return {
+    ...baseHeaders,
+    cookie,
+  };
+}
+
 app.use(express.static(__dirname));
 
 app.get('/', function(req, res) {
@@ -17,7 +27,7 @@ app.get('/api/airquality', async (req, res) => {
     const cookie = initialResponse.headers.get('set-cookie');
 
     let apiRes = await fetch("https://www.suratmunicipal.gov.in/Home/GetAirQualityInfoSci", {
-      "headers": {
+      "headers": buildHeaders({
         "accept": "*/*",
         "accept-language": "en-GB,en;q=0.9",
         "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
@@ -29,10 +39,9 @@ app.get('/api/airquality', async (req, res) => {
         "sec-fetch-mode": "cors",
         "sec-fetch-site": "same-origin",
         "x-requested-with": "XMLHttpRequest",
-        "cookie": cookie,
         "Referer": "https://www.suratmunicipal.gov.in/Departments/AirQualityResults",
         "Referrer-Policy": "strict-origin-when-cross-origin"
-      },
+      }, cookie),
       "body": "DeviceCode=",
       "method": "POST"
     });
@@ -53,7 +62,7 @@ app.get('/api/airquality/history', async (req, res) => {
     const cookie = initialResponse.headers.get('set-cookie');
 
     let apiRes = await fetch("https://www.suratmunicipal.gov.in/Home/GetAirQualityInfoSciLast10", {
-      "headers": {
+      "headers": buildHeaders({
         "accept": "*/*",
         "accept-language": "en-IN,en-GB;q=0.9,en-US;q=0.8,en;q=0.7",
         "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
@@ -62,10 +71,9 @@ app.get('/api/airquality/history', async (req, res) => {
         "sec-fetch-mode": "cors",
         "sec-fetch-site": "same-origin",
         "x-requested-with": "XMLHttpRequest",
-        "cookie": cookie,
         "Referer": "https://www.suratmunicipal.gov.in/Departments/AirQualityResults",
         "Referrer-Policy": "strict-origin-when-cross-origin"
-      },
+      }, cookie),
       "body": "DeviceCode=",
       "method": "POST"
     });
@@ -78,12 +86,8 @@ app.get('/api/airquality/history', async (req, res) => {
   }
 });
 
-app.listen(port, () => {
-  console.log(`Server listening at http://localhost:${port}`);
-});
-
-// This part is for local development, Vercel will handle the server.
-if (process.env.NODE_ENV !== 'production') {
+// Start the server only when running this file directly.
+if (require.main === module) {
   app.listen(port, () => {
     console.log(`Server listening at http://localhost:${port}`);
   });

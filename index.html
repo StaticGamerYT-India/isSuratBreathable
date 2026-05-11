@@ -485,6 +485,15 @@
                 return `${hour}:${finalMinute} ${ampm}`;
             }
 
+            function escapeHtml(value) {
+                return String(value ?? '')
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
+            }
+
             // --- DATA FETCHING AND RENDERING ---
             async function fetchData() {
                 try {
@@ -495,7 +504,10 @@
                     const container = document.getElementById('data-container');
                     container.innerHTML = '';
 
-                    const station = data.data;
+                    const station = data?.data;
+                    if (!station || typeof station !== 'object') {
+                        throw new Error('Unexpected API response shape');
+                    }
 
                     const breakpoints = {
                         pm25: [
@@ -538,16 +550,22 @@
                         return Math.round(((i_hi - i_lo) / (bp_hi - bp_lo)) * (concentration - bp_lo) + i_lo);
                     }
 
+                    const pm25 = parseFloat(station.PM2_5) || 0;
+                    const pm10 = parseFloat(station.PM10) || 0;
+                    const so2 = parseFloat(station.So2) || 0;
+                    const nox = parseFloat(station.NOx) || 0;
+                    const co = parseFloat(station.CO) || 0;
+
                     const finalAqi = Math.max(
-                        getAqiForPollutant(station.PM2_5, 'pm25'), getAqiForPollutant(station.PM10, 'pm10'),
-                        getAqiForPollutant(station.So2, 'so2'), getAqiForPollutant(station.NOx, 'nox'),
-                        getAqiForPollutant(station.CO, 'co')
+                        getAqiForPollutant(pm25, 'pm25'), getAqiForPollutant(pm10, 'pm10'),
+                        getAqiForPollutant(so2, 'so2'), getAqiForPollutant(nox, 'nox'),
+                        getAqiForPollutant(co, 'co')
                     );
 
                     const finalAqiWithoutPm10 = Math.max(
-                        getAqiForPollutant(station.PM2_5, 'pm25'),
-                        getAqiForPollutant(station.So2, 'so2'), getAqiForPollutant(station.NOx, 'nox'),
-                        getAqiForPollutant(station.CO, 'co')
+                        getAqiForPollutant(pm25, 'pm25'),
+                        getAqiForPollutant(so2, 'so2'), getAqiForPollutant(nox, 'nox'),
+                        getAqiForPollutant(co, 'co')
                     );
 
                     function getAqiDetails(aqi) {
@@ -575,17 +593,35 @@
 
                     const aqiDetails = getAqiDetails(finalAqi);
                     const aqiDetailsWithoutPm10 = getAqiDetails(finalAqiWithoutPm10);
-                    const tempDetails = getTempDetails(parseFloat(station.Ambient_Temperature));
-                    const humidityDetails = getHumidityDetails(parseFloat(station.Relative_Humidity));
+                    const ambientTemp = parseFloat(station.Ambient_Temperature) || 0;
+                    const relativeHumidity = parseFloat(station.Relative_Humidity) || 0;
+                    const tempDetails = getTempDetails(ambientTemp);
+                    const humidityDetails = getHumidityDetails(relativeHumidity);
 
-                    const isPM10High = parseFloat(station.PM10) > 1800;
+                    const isPM10High = pm10 > 1800;
 
                     const stationDiv = document.createElement('div');
                     stationDiv.classList.add('station', 'card');
 
-                    const date = new Date(parseInt(station.dtl_date.substr(6)));
+                    const dateMatch = String(station.dtl_date || '').match(/\d+/);
+                    const date = dateMatch ? new Date(parseInt(dateMatch[0], 10)) : new Date();
                     const formattedDate = `${String(date.getDate()).padStart(2, '0')}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getFullYear()).slice(-2)}`;
                     const formattedTime = formatTo12Hour(station.testing_time);
+
+                    const displayStation = {
+                        Ambient_Temperature: escapeHtml(station.Ambient_Temperature),
+                        Relative_Humidity: escapeHtml(station.Relative_Humidity),
+                        PM2_5: escapeHtml(station.PM2_5),
+                        PM10: escapeHtml(station.PM10),
+                        So2: escapeHtml(station.So2),
+                        NOx: escapeHtml(station.NOx),
+                        CO: escapeHtml(station.CO),
+                        Wind_Speed: escapeHtml(station.Wind_Speed),
+                        Wind_Direction: escapeHtml(station.Wind_Direction),
+                        Rain_Fall: escapeHtml(station.Rain_Fall),
+                        Solar_Radiation: escapeHtml(station.Solar_Radiation),
+                        Atmospheric_Pressure: escapeHtml(station.Atmospheric_Pressure)
+                    };
 
                     stationDiv.innerHTML = `
                         <h2>Science Center Se Seedha Real Time Result</h2>
@@ -611,12 +647,12 @@
                             ` : ''}
                             <div class="metric-card temp-card" style="background-color: ${tempDetails.color};">
                                 <div class="metric-title">Temperature</div>
-                                <div class="metric-value">${station.Ambient_Temperature}°C</div>
+                                <div class="metric-value">${displayStation.Ambient_Temperature}°C</div>
                                 <div class="metric-desc">${tempDetails.summary}</div>
                             </div>
                             <div class="metric-card humidity-card" style="background-color: ${humidityDetails.color};">
                                 <div class="metric-title">Humidity</div>
-                                <div class="metric-value">${station.Relative_Humidity}%</div>
+                                <div class="metric-value">${displayStation.Relative_Humidity}%</div>
                                 <div class="metric-desc">${humidityDetails.summary}</div>
                             </div>
                         </div>
@@ -624,21 +660,21 @@
                             <div class="pollutants">
                                 <h3>Pollutant Details</h3>
                                 <ul>
-                                    <li><strong>PM2.5:</strong> <span>${station.PM2_5} µg/m³</span><span class="material-symbols-outlined pollutant-info-icon" data-pollutant="pm25">info</span></li>
-                                    <li><strong>PM10:</strong> <span>${station.PM10} µg/m³</span><span class="material-symbols-outlined pollutant-info-icon" data-pollutant="pm10">info</span></li>
-                                    <li><strong>SO2:</strong> <span>${station.So2} µg/m³</span><span class="material-symbols-outlined pollutant-info-icon" data-pollutant="so2">info</span></li>
-                                    <li><strong>NOx:</strong> <span>${station.NOx} µg/m³</span><span class="material-symbols-outlined pollutant-info-icon" data-pollutant="nox">info</span></li>
-                                    <li><strong>CO:</strong> <span>${station.CO} µg/m³</span><span class="material-symbols-outlined pollutant-info-icon" data-pollutant="co">info</span></li>
+                                    <li><strong>PM2.5:</strong> <span>${displayStation.PM2_5} µg/m³</span><span class="material-symbols-outlined pollutant-info-icon" data-pollutant="pm25">info</span></li>
+                                    <li><strong>PM10:</strong> <span>${displayStation.PM10} µg/m³</span><span class="material-symbols-outlined pollutant-info-icon" data-pollutant="pm10">info</span></li>
+                                    <li><strong>SO2:</strong> <span>${displayStation.So2} µg/m³</span><span class="material-symbols-outlined pollutant-info-icon" data-pollutant="so2">info</span></li>
+                                    <li><strong>NOx:</strong> <span>${displayStation.NOx} µg/m³</span><span class="material-symbols-outlined pollutant-info-icon" data-pollutant="nox">info</span></li>
+                                    <li><strong>CO:</strong> <span>${displayStation.CO} µg/m³</span><span class="material-symbols-outlined pollutant-info-icon" data-pollutant="co">info</span></li>
                                 </ul>
                             </div>
                             <div class="weather">
                                 <h3>Other Weather Details</h3>
                                 <ul>
-                                    <li><strong>Wind Speed:</strong> <span>${station.Wind_Speed} Km/s</span></li>
-                                    <li><strong>Wind Direction:</strong> <span>${station.Wind_Direction}°</span></li>
-                                    <li><strong>Rain Fall:</strong> <span>${station.Rain_Fall} cm</span></li>
-                                    <li><strong>Solar Radiation:</strong> <span>${station.Solar_Radiation} W/m²</span></li>
-                                    <li><strong>Atmospheric Pressure:</strong> <span>${station.Atmospheric_Pressure} hPa</span></li>
+                                    <li><strong>Wind Speed:</strong> <span>${displayStation.Wind_Speed} km/h</span></li>
+                                    <li><strong>Wind Direction:</strong> <span>${displayStation.Wind_Direction}°</span></li>
+                                    <li><strong>Rain Fall:</strong> <span>${displayStation.Rain_Fall} cm</span></li>
+                                    <li><strong>Solar Radiation:</strong> <span>${displayStation.Solar_Radiation} W/m²</span></li>
+                                    <li><strong>Atmospheric Pressure:</strong> <span>${displayStation.Atmospheric_Pressure} hPa</span></li>
                                 </ul>
                             </div>
                         </div>

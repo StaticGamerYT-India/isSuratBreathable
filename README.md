@@ -34,11 +34,12 @@ Welcome to **Surat Ki Actual Air Quality**, the only dashboard that tells you if
 ## 🛠️ How to Get This Running
 
 1.  **First check it out**
-    ```lol
+    ```sh
+    git clone https://github.com/StaticGamerYT-India/isSuratBreathable.git
     ```
 2.  **Navigate to the project directory:**
     ```sh
-    cd your-repo-name
+    cd isSuratBreathable
     ```
 3.  **Install dependencies for the server:**
     ```sh
@@ -48,7 +49,7 @@ Welcome to **Surat Ki Actual Air Quality**, the only dashboard that tells you if
     ```sh
     npm start
     ```
-5.  Open `localhost from console` in your browser. Boom. You're in.
+5.  Open http://localhost:3000 in your browser. Boom. You're in.
 
 ---
 
