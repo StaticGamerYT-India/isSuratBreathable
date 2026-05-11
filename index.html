@@ -151,6 +151,7 @@
             margin: 0 auto;
             display: grid;
             gap: 30px;
+            grid-template-columns: repeat(2, 1fr);
         }
 
         .card {
@@ -338,6 +339,10 @@
         }
 
         @media (max-width: 768px) {
+            main {
+                grid-template-columns: 1fr;
+            }
+
             h1 {
                 font-size: 1.8rem;
                 text-align: center;
