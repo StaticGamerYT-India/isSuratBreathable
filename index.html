@@ -16,7 +16,7 @@
             --light-background: #f0f2f5;
             --light-surface: #ffffff;
             --light-on-surface: #1c1b1f;
-            --light-primary: #6750a4;
+            --light-primary: #2563eb;
             --light-on-primary: #ffffff;
             --light-secondary-container: #e8def8;
             --light-on-secondary-container: #1e192b;
@@ -25,15 +25,15 @@
             --light-shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
             --light-shadow-md: 0 4px 12px rgba(0,0,0,0.1);
 
-            --dark-background: #1c1b1f;
-            --dark-surface: #2b2930;
-            --dark-on-surface: #e6e1e5;
-            --dark-primary: #d0bcff;
-            --dark-on-primary: #381e72;
-            --dark-secondary-container: #4a4458;
-            --dark-on-secondary-container: #e8def8;
-            --dark-outline: #938f99;
-            --dark-surface-variant: #49454f;
+            --dark-background: #0f172a;
+            --dark-surface: #16213a;
+            --dark-on-surface: #e5eefc;
+            --dark-primary: #60a5fa;
+            --dark-on-primary: #0f172a;
+            --dark-secondary-container: #1e3357;
+            --dark-on-secondary-container: #dbeafe;
+            --dark-outline: #7f93b3;
+            --dark-surface-variant: #1b2945;
             --dark-shadow-sm: 0 2px 4px rgba(0,0,0,0.2);
             --dark-shadow-md: 0 4px 12px rgba(0,0,0,0.3);
         }
@@ -71,7 +71,7 @@
             --background: var(--dark-background);
             --surface: var(--dark-surface);
             --on-surface: var(--dark-on-surface);
-            --primary: var(--dark-primary);
+               --primary: var(--dark-primary);
             --on-primary: var(--dark-on-primary);
             --secondary-container: var(--dark-secondary-container);
             --on-secondary-container: var(--dark-on-secondary-container);
@@ -151,53 +151,6 @@
         input:checked + .slider:before {
             transform: translateX(22px);
             background-color: var(--on-primary);
-        }
-        /* End of new toggle switch CSS */
-
-        main {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: grid;
-            gap: 30px;
-        }
-
-        .card {
-            background-color: var(--surface);
-            border-radius: 12px;
-            padding: 25px;
-            box-shadow: var(--shadow-md);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        .card:hover {
-            transform: translateY(-5px);
-        }
-
-        .station h2 {
-            margin-top: 0;
-            color: var(--on-surface);
-            border-bottom: 1px solid var(--outline);
-            padding-bottom: 10px;
-            margin-bottom: 5px;
-            font-size: 1.8rem;
-        }
-        .station .last-updated {
-            text-align: center;
-            color: var(--outline);
-            margin-bottom: 25px;
-            font-size: 0.9rem;
-        }
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 20px;
-            margin-bottom: 25px;
-        }
-        .metric-card {
-            padding: 20px;
-            border-radius: 12px;
-            text-align: center;
-            color: var(--on-primary);
-            box-shadow: var(--shadow-sm);
         }
         .metric-card .metric-title {
             font-size: 1rem;
@@ -431,102 +384,6 @@
             const themeMedia = window.matchMedia('(prefers-color-scheme: dark)');
             let themePreference = localStorage.getItem('themePreference');
 
-            const paletteSeeds = [
-                {
-                    light: {
-                        background: '#f4f1eb',
-                        surface: '#fffaf4',
-                        onSurface: '#241f1b',
-                        primary: '#7b5b3d',
-                        onPrimary: '#ffffff',
-                        secondaryContainer: '#eadbcf',
-                        onSecondaryContainer: '#2b1f16',
-                        outline: '#8d7f74',
-                        surfaceVariant: '#e7ded4',
-                        shadowSm: '0 2px 4px rgba(64, 44, 28, 0.08)',
-                        shadowMd: '0 4px 14px rgba(64, 44, 28, 0.12)'
-                    },
-                    dark: {
-                        background: '#191512',
-                        surface: '#25201c',
-                        onSurface: '#efe7df',
-                        primary: '#d8b08c',
-                        onPrimary: '#3b2717',
-                        secondaryContainer: '#46372d',
-                        onSecondaryContainer: '#f3dfd0',
-                        outline: '#a39387',
-                        surfaceVariant: '#3a322d',
-                        shadowSm: '0 2px 4px rgba(0, 0, 0, 0.22)',
-                        shadowMd: '0 4px 14px rgba(0, 0, 0, 0.32)'
-                    }
-                },
-                {
-                    light: {
-                        background: '#eff5f7',
-                        surface: '#fbfeff',
-                        onSurface: '#182126',
-                        primary: '#2f6f83',
-                        onPrimary: '#ffffff',
-                        secondaryContainer: '#d8ebf1',
-                        onSecondaryContainer: '#13242b',
-                        outline: '#71878f',
-                        surfaceVariant: '#dfe9ec',
-                        shadowSm: '0 2px 4px rgba(18, 47, 57, 0.08)',
-                        shadowMd: '0 4px 14px rgba(18, 47, 57, 0.12)'
-                    },
-                    dark: {
-                        background: '#12181b',
-                        surface: '#1c2327',
-                        onSurface: '#e4eef2',
-                        primary: '#89c2d9',
-                        onPrimary: '#103140',
-                        secondaryContainer: '#29414c',
-                        onSecondaryContainer: '#d7edf5',
-                        outline: '#8ca1aa',
-                        surfaceVariant: '#28343a',
-                        shadowSm: '0 2px 4px rgba(0, 0, 0, 0.22)',
-                        shadowMd: '0 4px 14px rgba(0, 0, 0, 0.32)'
-                    }
-                },
-                {
-                    light: {
-                        background: '#f5f6ee',
-                        surface: '#ffffff',
-                        onSurface: '#23251d',
-                        primary: '#5d7a34',
-                        onPrimary: '#ffffff',
-                        secondaryContainer: '#dfe8cd',
-                        onSecondaryContainer: '#1e260f',
-                        outline: '#7e8d68',
-                        surfaceVariant: '#e7ecd9',
-                        shadowSm: '0 2px 4px rgba(42, 54, 20, 0.08)',
-                        shadowMd: '0 4px 14px rgba(42, 54, 20, 0.12)'
-                    },
-                    dark: {
-                        background: '#161913',
-                        surface: '#20251d',
-                        onSurface: '#e7eddf',
-                        primary: '#bed48e',
-                        onPrimary: '#283312',
-                        secondaryContainer: '#364026',
-                        onSecondaryContainer: '#e4efd0',
-                        outline: '#94a483',
-                        surfaceVariant: '#2d3527',
-                        shadowSm: '0 2px 4px rgba(0, 0, 0, 0.22)',
-                        shadowMd: '0 4px 14px rgba(0, 0, 0, 0.32)'
-                    }
-                }
-            ];
-
-            function hashString(value) {
-                let hash = 0;
-                for (let index = 0; index < value.length; index += 1) {
-                    hash = (hash << 5) - hash + value.charCodeAt(index);
-                    hash |= 0;
-                }
-                return Math.abs(hash);
-            }
-
             function applyPalette(palette, isDark) {
                 const theme = isDark ? palette.dark : palette.light;
                 body.style.setProperty('--background', theme.background);
@@ -544,16 +401,34 @@
             }
 
             function getAdaptivePalette() {
-                const deviceFingerprint = [
-                    navigator.language || '',
-                    navigator.platform || '',
-                    `${window.screen.width}x${window.screen.height}`,
-                    `${window.devicePixelRatio || 1}`,
-                    new Date().getTimezoneOffset().toString()
-                ].join('|');
-
-                const paletteIndex = hashString(deviceFingerprint) % paletteSeeds.length;
-                return paletteSeeds[paletteIndex];
+                return {
+                    light: {
+                        background: '#eef5fb',
+                        surface: '#ffffff',
+                        onSurface: '#16212b',
+                        primary: '#2563eb',
+                        onPrimary: '#ffffff',
+                        secondaryContainer: '#dbeafe',
+                        onSecondaryContainer: '#10243f',
+                        outline: '#7589a3',
+                        surfaceVariant: '#e3ecf8',
+                        shadowSm: '0 2px 4px rgba(25, 55, 105, 0.08)',
+                        shadowMd: '0 4px 14px rgba(25, 55, 105, 0.12)'
+                    },
+                    dark: {
+                        background: '#0f172a',
+                        surface: '#16213a',
+                        onSurface: '#e5eefc',
+                        primary: '#60a5fa',
+                        onPrimary: '#0f172a',
+                        secondaryContainer: '#1e3357',
+                        onSecondaryContainer: '#dbeafe',
+                        outline: '#7f93b3',
+                        surfaceVariant: '#1b2945',
+                        shadowSm: '0 2px 4px rgba(0, 0, 0, 0.22)',
+                        shadowMd: '0 4px 14px rgba(0, 0, 0, 0.32)'
+                    }
+                };
             }
 
             // --- THEME AND TOGGLE LOGIC ---
