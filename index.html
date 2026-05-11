@@ -3,8 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="color-scheme" content="light dark">
-    <meta name="theme-color" content="#f0f2f5" id="theme-color-meta">
     <title>Surat Ki Asli Air Quality</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌬️</text></svg>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -14,26 +12,45 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 
     <style>
-        html {
-            color-scheme: light dark;
-            background-color: Canvas;
-        }
-
         :root {
-            --background: Canvas;
-            --surface: color-mix(in srgb, Canvas 92%, ButtonFace 8%);
-            --on-surface: CanvasText;
-            --primary: AccentColor;
-            --on-primary: AccentColorText;
-            --secondary-container: color-mix(in srgb, Canvas 84%, AccentColor 16%);
-            --on-secondary-container: CanvasText;
-            --outline: GrayText;
-            --surface-variant: color-mix(in srgb, Canvas 82%, ButtonFace 18%);
-            --shadow-sm: 0 2px 4px rgba(0,0,0,0.08);
-            --shadow-md: 0 4px 12px rgba(0,0,0,0.14);
+            --light-background: #f0f2f5;
+            --light-surface: #ffffff;
+            --light-on-surface: #1c1b1f;
+            --light-primary: #6750a4;
+            --light-on-primary: #ffffff;
+            --light-secondary-container: #e8def8;
+            --light-on-secondary-container: #1e192b;
+            --light-outline: #79747e;
+            --light-surface-variant: #e7e0ec;
+            --light-shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
+            --light-shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+
+            --dark-background: #1c1b1f;
+            --dark-surface: #2b2930;
+            --dark-on-surface: #e6e1e5;
+            --dark-primary: #d0bcff;
+            --dark-on-primary: #381e72;
+            --dark-secondary-container: #4a4458;
+            --dark-on-secondary-container: #e8def8;
+            --dark-outline: #938f99;
+            --dark-surface-variant: #49454f;
+            --dark-shadow-sm: 0 2px 4px rgba(0,0,0,0.2);
+            --dark-shadow-md: 0 4px 12px rgba(0,0,0,0.3);
         }
 
         body {
+            --background: var(--light-background);
+            --surface: var(--light-surface);
+            --on-surface: var(--light-on-surface);
+            --primary: var(--light-primary);
+            --on-primary: var(--light-on-primary);
+            --secondary-container: var(--light-secondary-container);
+            --on-secondary-container: var(--light-on-secondary-container);
+            --outline: var(--light-outline);
+            --surface-variant: var(--light-surface-variant);
+            --shadow-sm: var(--light-shadow-sm);
+            --shadow-md: var(--light-shadow-md);
+
             font-family: 'Inter', sans-serif;
             background-color: var(--background);
             color: var(--on-surface);
@@ -42,18 +59,18 @@
             transition: background-color 0.3s ease, color 0.3s ease;
         }
 
-        html.dark-mode {
-            --background: Canvas;
-            --surface: color-mix(in srgb, Canvas 86%, ButtonFace 14%);
-            --on-surface: CanvasText;
-            --primary: AccentColor;
-            --on-primary: AccentColorText;
-            --secondary-container: color-mix(in srgb, Canvas 76%, AccentColor 24%);
-            --on-secondary-container: CanvasText;
-            --outline: GrayText;
-            --surface-variant: color-mix(in srgb, Canvas 70%, ButtonFace 30%);
-            --shadow-sm: 0 2px 4px rgba(0,0,0,0.22);
-            --shadow-md: 0 4px 12px rgba(0,0,0,0.34);
+        body.dark-mode {
+            --background: var(--dark-background);
+            --surface: var(--dark-surface);
+            --on-surface: var(--dark-on-surface);
+            --primary: var(--dark-primary);
+            --on-primary: var(--dark-on-primary);
+            --secondary-container: var(--dark-secondary-container);
+            --on-secondary-container: var(--dark-on-secondary-container);
+            --outline: var(--dark-outline);
+            --surface-variant: var(--dark-surface-variant);
+            --shadow-sm: var(--dark-shadow-sm);
+            --shadow-md: var(--dark-shadow-md);
         }
 
         .material-symbols-outlined {
@@ -400,28 +417,18 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const root = document.documentElement;
+            const body = document.body;
             const themeToggle = document.getElementById('theme-toggle');
-            const themeColorMeta = document.getElementById('theme-color-meta');
             let aqiChart = null;
 
             // --- THEME AND TOGGLE LOGIC ---
             function applyTheme(isDark) {
-                root.classList.toggle('dark-mode', isDark);
+                body.classList.toggle('dark-mode', isDark);
                 localStorage.setItem('theme', isDark ? 'dark' : 'light');
-                syncThemeColorMeta();
                 if (aqiChart) {
                     aqiChart.options = getChartOptions();
                     aqiChart.update();
                 }
-            }
-
-            function syncThemeColorMeta() {
-                if (!themeColorMeta) {
-                    return;
-                }
-
-                themeColorMeta.setAttribute('content', getComputedStyle(root).backgroundColor);
             }
 
             function initializeTheme() {
@@ -446,9 +453,9 @@
             // --- CHARTING LOGIC ---
             function getChartOptions() {
                 const isMobile = window.innerWidth <= 768;
-                const isDarkMode = root.classList.contains('dark-mode');
-                const styles = getComputedStyle(root);
-                const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.1)';
+                const isDarkMode = body.classList.contains('dark-mode');
+                const styles = getComputedStyle(body);
+                const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
                 const textColor = styles.getPropertyValue('--on-surface').trim();
                 const titleColor = styles.getPropertyValue('--primary').trim();
 
@@ -854,7 +861,6 @@
 
             // --- INITIALIZATION ---
             initializeTheme();
-            syncThemeColorMeta();
             fetchData();
         });
     </script>
