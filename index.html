@@ -869,6 +869,17 @@
                                 maxTicksLimit: isMobile ? 5 : 8
                             },
                             grid: { color: gridColor }
+                        },
+                        yHumidity: {
+                            display: true,
+                            position: 'right',
+                            title: { display: true, text: 'Humidity (%)', color: textColor },
+                            ticks: {
+                                color: textColor,
+                                maxTicksLimit: isMobile ? 5 : 8,
+                                callback: (value) => `${value}%`
+                            },
+                            grid: { drawOnChartArea: false, color: gridColor }
                         }
                     }
                 };
@@ -1361,12 +1372,18 @@
                         return `${formattedDate} ${formatTo12Hour(d.testing_time)}`;
                     }).reverse();
 
+                    const getHumidityValue = (entry) => {
+                        const humidityValue = entry.Relative_Humidity ?? entry.humidity ?? entry.Humidity;
+                        return parseFloat(humidityValue) || 0;
+                    };
+
                     const datasets = [
                         { label: 'PM2.5', data: data.data.map(d => d.PM2_5).reverse(), borderColor: '#ff6384', tension: 0.2, fill: false },
                         { label: 'PM10', data: data.data.map(d => d.PM10).reverse(), borderColor: '#36a2eb', tension: 0.2, fill: false },
                         { label: 'SO2', data: data.data.map(d => d.So2).reverse(), borderColor: '#ffce56', tension: 0.2, fill: false },
                         { label: 'NOx', data: data.data.map(d => d.NOx).reverse(), borderColor: '#4bc0c0', tension: 0.2, fill: false },
                         { label: 'CO', data: data.data.map(d => d.CO).reverse(), borderColor: '#9966ff', tension: 0.2, fill: false },
+                        { label: 'Humidity', data: data.data.map(getHumidityValue).reverse(), borderColor: '#00bcd4', backgroundColor: 'rgba(0, 188, 212, 0.12)', tension: 0.2, fill: false, yAxisID: 'yHumidity' },
                     ];
 
                     const ctx = document.getElementById('aqi-chart').getContext('2d');
