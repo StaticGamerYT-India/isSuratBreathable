@@ -1133,7 +1133,8 @@
                             else return 0;
                         }
                         const { i_lo, i_hi, bp_lo, bp_hi } = range;
-                        return Math.round(((i_hi - i_lo) / (bp_hi - bp_lo)) * (concentration - bp_lo) + i_lo);
+                        const rawAqi = Math.round(((i_hi - i_lo) / (bp_hi - bp_lo)) * (concentration - bp_lo) + i_lo);
+                        return Math.max(0, Math.min(500, rawAqi));
                     }
 
                     const pm25 = parseFloat(station.PM2_5) || 0;
@@ -1269,7 +1270,6 @@
 
                     setupInfoBoxDismiss();
                     setupPollutantTooltips();
-                    fetchHistoricalData();
                 } catch (error) {
                     console.error("Error in fetchData:", error);
                     document.getElementById('data-container').innerHTML = `<div class="card"><p>Oops! Couldn't fetch the latest air quality gossip. The server might be taking a nap. Try again later.</p></div>`;
@@ -1377,20 +1377,37 @@
                     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                     const data = await response.json();
 
+                    const parseHistoryNumber = (value) => {
+                        const parsed = parseFloat(value);
+                        return Number.isFinite(parsed) ? parsed : null;
+                    };
+
+                    const formatHistoryDate = (value) => {
+                        const match = String(value || '').match(/\d+/);
+                        if (!match) {
+                            return '';
+                        }
+
+                        const date = new Date(Number(match[0]));
+                        return date.toLocaleDateString('en-GB', {
+                            timeZone: 'Asia/Kolkata',
+                            day: '2-digit',
+                            month: '2-digit',
+                        }).replace(/\//g, '-');
+                    };
+
                     const labels = data.data.map(d => {
-                        const date = new Date(parseInt(d.dtl_date.substr(6)));
-                        const formattedDate = `${String(date.getDate()).padStart(2, '0')}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-                        return `${formattedDate} ${formatTo12Hour(d.testing_time)}`;
+                        return `${formatHistoryDate(d.dtl_date)} ${formatTo12Hour(d.testing_time)}`.trim();
                     }).reverse();
 
                     const getHumidityValue = (entry) => {
                         const humidityValue = entry.Relative_Humidity ?? entry.humidity ?? entry.Humidity;
-                        return parseFloat(humidityValue) || 0;
+                        return parseHistoryNumber(humidityValue);
                     };
 
                     const getTemperatureValue = (entry) => {
                         const temperatureValue = entry.Ambient_Temperature ?? entry.temperature ?? entry.Temperature;
-                        return parseFloat(temperatureValue) || 0;
+                        return parseHistoryNumber(temperatureValue);
                     };
 
                     const datasets = [
@@ -1422,6 +1439,7 @@
             fetchWeatherAlert();
             fetchRssAlerts();
             fetchData();
+            fetchHistoricalData();
 
             setInterval(() => {
                 fetchWeatherAlert();
