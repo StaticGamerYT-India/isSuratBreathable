@@ -776,7 +776,7 @@
             const alertState = {
                 imd: null,
                 ndmaItem: null,
-                ndmaSource: 'https://sachet.ndma.gov.in/cap_public_website/rss/rss_gujarat.xml',
+                ndmaSource: 'https://sachet.ndma.gov.in/cap_public_website/FetchLocationWiseAlerts?lat=21.1702&long=72.8311&radius=20',
             };
 
             // --- THEME AND TOGGLE LOGIC ---
@@ -892,25 +892,14 @@
                     .replace(/'/g, '&#39;');
             }
 
-            function formatFeedDate(value) {
-                const date = new Date(value);
-                if (Number.isNaN(date.getTime())) {
+            function formatNdmaTime(value) {
+                if (!value) {
                     return '';
                 }
 
-                return date.toLocaleString('en-IN', {
-                    day: '2-digit',
-                    month: 'short',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                });
-            }
-
-            function formatFeedDateInIST(value) {
                 const date = new Date(value);
-
                 if (Number.isNaN(date.getTime())) {
-                    return '';
+                    return String(value);
                 }
 
                 return date.toLocaleString('en-IN', {
@@ -961,20 +950,24 @@
                 const ndma = alertState.ndmaItem;
                 const ndmaSourceUrl = escapeHtml(alertState.ndmaSource || 'https://sachet.ndma.gov.in/cap_public_website/rss/rss_gujarat.xml');
                 if (ndma) {
-                    const ndmaPublishedAt = escapeHtml(alertState.ndmaPublishedAt || formatFeedDateInIST(ndma.pubDate) || 'Today');
+                    const ndmaActiveFrom = escapeHtml(ndma.effective_start_time || 'Not available');
+                    const ndmaValidUntil = escapeHtml(ndma.effective_end_time || 'Not available');
+                    const ndmaSeverity = escapeHtml(ndma.severity || ndma.severity_level || 'Alert');
+                    const ndmaType = escapeHtml(ndma.disaster_type || ndma.type || 'Weather');
+                    const ndmaMessage = escapeHtml(ndma.warning_message || ndma.area_description || 'NDMA has issued a location-wise alert for Surat.');
                     cards.push(`
                         <article class="card alert-card alert-ndma">
                             <div class="alert-grid">
                                 <div class="alert-header">
-                                    <h3 class="alert-title">${escapeHtml(ndma.title || 'NDMA Today\'s Alert')}</h3>
-                                    <span class="alert-badge">Today</span>
+                                    <h3 class="alert-title">Surat NDMA Alert</h3>
+                                    <span class="alert-badge">${ndmaSeverity}</span>
                                 </div>
-                                <p class="alert-summary">${escapeHtml(ndma.description || ndma.title || 'No description provided.')}</p>
+                                <p class="alert-summary">${ndmaMessage}</p>
                                 <div class="alert-meta">
-                                    <div><strong>Published</strong><span>${ndmaPublishedAt}</span></div>
-                                    <div><strong>Type</strong><span>${escapeHtml(ndma.category || 'Alert')}</span></div>
-                                    <div><strong>Area</strong><span>${/surat/i.test(`${ndma.title || ''} ${ndma.description || ''}`) ? 'Surat mentioned' : 'Gujarat update'}</span></div>
-                                    <div><strong>Source</strong><span><a href="${escapeHtml(ndma.link || ndmaSourceUrl)}" target="_blank" rel="noreferrer">Open alert</a></span></div>
+                                    <div><strong>Effective from</strong><span>${ndmaActiveFrom}</span></div>
+                                    <div><strong>Valid until</strong><span>${ndmaValidUntil}</span></div>
+                                    <div><strong>Type</strong><span>${ndmaType}</span></div>
+                                    <div><strong>Source</strong><span><a href="${ndmaSourceUrl}" target="_blank" rel="noreferrer">NDMA</a></span></div>
                                 </div>
                             </div>
                         </article>
@@ -984,13 +977,13 @@
                         <article class="card alert-card alert-ndma">
                             <div class="alert-grid">
                                 <div class="alert-header">
-                                    <h3 class="alert-title">NDMA Today\'s Alert</h3>
+                                    <h3 class="alert-title">Surat NDMA Alert</h3>
                                     <span class="alert-badge">No alert</span>
                                 </div>
-                                <p class="alert-summary">No NDMA Gujarat alert was issued today for Surat.</p>
+                                <p class="alert-summary">No current NDMA alert mentions Surat right now.</p>
                                 <div class="alert-meta">
                                     <div><strong>Status</strong><span>Quiet right now</span></div>
-                                    <div><strong>Source</strong><span><a href="${ndmaSourceUrl}" target="_blank" rel="noreferrer">RSS feed</a></span></div>
+                                    <div><strong>Source</strong><span><a href="${ndmaSourceUrl}" target="_blank" rel="noreferrer">NDMA search</a></span></div>
                                 </div>
                             </div>
                         </article>
@@ -1023,7 +1016,7 @@
 
             async function fetchRssAlerts() {
                 try {
-                    const response = await fetch('/api/rss-alerts');
+                    const response = await fetch('/api/ndma-alerts');
                     if (!response.ok) {
                         return;
                     }
@@ -1031,7 +1024,6 @@
                     const data = await response.json();
                     alertState.ndmaSource = data.sourceUrl || alertState.ndmaSource;
                     alertState.ndmaItem = data.currentItem || data.items?.[0] || null;
-                    alertState.ndmaPublishedAt = data.publishedAtLabel || (alertState.ndmaItem ? formatFeedDateInIST(alertState.ndmaItem.pubDate) : '');
                     renderAlertCarousel();
                 } catch (error) {
                     console.error('Error fetching RSS alerts:', error);

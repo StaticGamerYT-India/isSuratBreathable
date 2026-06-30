@@ -4,7 +4,12 @@ const path = require('path');
 const app = express();
 const port = 3000;
 const IMD_SURAT_URL = 'https://mausam.imd.gov.in/imd_latest/contents/districtwisewarnings_mc.php?id=9';
-const NDMA_GUJARAT_RSS_URL = 'https://sachet.ndma.gov.in/cap_public_website/rss/rss_gujarat.xml';
+const NDMA_SURAT_ALERTS_URL = 'https://sachet.ndma.gov.in/cap_public_website/FetchLocationWiseAlerts';
+const SURAT_ALERT_QUERY = {
+  lat: '21.1702',
+  long: '72.8311',
+  radius: '20',
+};
 
 function buildHeaders(baseHeaders, cookie) {
   if (!cookie) {
@@ -129,85 +134,9 @@ function parseAlertDetails(info) {
   };
 }
 
-function decodeXmlEntities(value) {
-  return String(value || '')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&amp;/g, '&')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .trim();
-}
-
-function extractTagValue(block, tagName) {
-  const match = block.match(new RegExp(`<${tagName}[^>]*>([\\s\\S]*?)<\/${tagName}>`, 'i'));
-
-  if (!match) {
-    return '';
-  }
-
-  return decodeXmlEntities(match[1].replace(/<[^>]+>/g, ' '));
-}
-
-function parseRssItems(xml) {
-  const itemBlocks = xml.match(/<item>[\s\S]*?<\/item>/gi) || [];
-
-  return itemBlocks.map(block => ({
-    title: extractTagValue(block, 'title'),
-    description: extractTagValue(block, 'description'),
-    link: extractTagValue(block, 'link'),
-    category: extractTagValue(block, 'category'),
-    author: extractTagValue(block, 'author'),
-    guid: extractTagValue(block, 'guid'),
-    pubDate: extractTagValue(block, 'pubDate'),
-  }));
-}
-
-function mentionsSurat(item) {
-  return /surat/i.test(`${item?.title || ''} ${item?.description || ''}`);
-}
-
-function getDateKeyInTimeZone(dateValue, timeZone = 'Asia/Kolkata') {
-  const date = new Date(dateValue);
-
-  if (Number.isNaN(date.getTime())) {
-    return '';
-  }
-
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(date);
-}
-
-function getTodayDateKeyInTimeZone(timeZone = 'Asia/Kolkata') {
-  return getDateKeyInTimeZone(new Date(), timeZone);
-}
-
 function parseDateOrZero(value) {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? 0 : date.getTime();
-}
-
-function formatDateTimeInTimeZone(dateValue, timeZone = 'Asia/Kolkata') {
-  const date = new Date(dateValue);
-
-  if (Number.isNaN(date.getTime())) {
-    return '';
-  }
-
-  return new Intl.DateTimeFormat('en-IN', {
-    timeZone,
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true,
-    timeZoneName: 'short',
-  }).format(date);
 }
 
 app.get('/api/weather-alert', async (req, res) => {
@@ -250,11 +179,17 @@ app.get('/api/weather-alert', async (req, res) => {
   }
 });
 
-app.get('/api/rss-alerts', async (req, res) => {
+app.get('/api/ndma-alerts', async (req, res) => {
   try {
-    const response = await fetch(NDMA_GUJARAT_RSS_URL, {
+    const url = new URL(NDMA_SURAT_ALERTS_URL);
+    Object.entries(SURAT_ALERT_QUERY).forEach(([key, value]) => {
+      url.searchParams.set(key, value);
+    });
+
+    const response = await fetch(url, {
+      method: 'POST',
       headers: {
-        accept: 'application/rss+xml,application/xml,text/xml,*/*;q=0.8',
+        accept: 'application/json, text/plain, */*',
         'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
       },
     });
@@ -263,23 +198,18 @@ app.get('/api/rss-alerts', async (req, res) => {
       throw new Error(`RSS request failed with status ${response.status}`);
     }
 
-    const xml = await response.text();
-    const items = parseRssItems(xml);
-    const todayKey = getTodayDateKeyInTimeZone('Asia/Kolkata');
-    const todaysSuratItems = items
-      .filter(item => getDateKeyInTimeZone(item.pubDate, 'Asia/Kolkata') === todayKey)
-      .filter(mentionsSurat)
-      .sort((left, right) => parseDateOrZero(right.pubDate) - parseDateOrZero(left.pubDate));
-
-    const todaysSuratItem = todaysSuratItems[0] || null;
+    const json = await response.json();
+    const alerts = Array.isArray(json.alerts) ? json.alerts : [];
+    const currentAlert = alerts
+      .filter(alert => /surat/i.test(`${alert.area_description || ''} ${alert.warning_message || ''}`))
+      .sort((left, right) => parseDateOrZero(right.effective_start_time) - parseDateOrZero(left.effective_start_time))[0] || null;
 
     res.json({
-      sourceUrl: NDMA_GUJARAT_RSS_URL,
+      sourceUrl: NDMA_SURAT_ALERTS_URL,
       channelTitle: 'Gujarat: CAP Disaster Alert Feeds',
-      currentItem: todaysSuratItem,
-      hasTodayAlert: Boolean(todaysSuratItem),
-      publishedAtLabel: todaysSuratItem ? formatDateTimeInTimeZone(todaysSuratItem.pubDate, 'Asia/Kolkata') : '',
-      items: todaysSuratItem ? [todaysSuratItem] : [],
+      currentItem: currentAlert,
+      hasTodayAlert: Boolean(currentAlert),
+      items: currentAlert ? [currentAlert] : [],
     });
   } catch (error) {
     console.error(error);
