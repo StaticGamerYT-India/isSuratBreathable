@@ -938,6 +938,27 @@
                 });
             }
 
+            function formatImdTime(value) {
+                if (!value) {
+                    return '';
+                }
+
+                const date = new Date(value);
+                if (Number.isNaN(date.getTime())) {
+                    return String(value);
+                }
+
+                return date.toLocaleString('en-IN', {
+                    timeZone: 'Asia/Kolkata',
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true,
+                }).replace(/\bAM\b/g, 'a.m.').replace(/\bPM\b/g, 'p.m.');
+            }
+
             function renderAlertCarousel() {
                 const section = document.getElementById('alerts-carousel');
                 const track = document.getElementById('alerts-track');
@@ -953,6 +974,8 @@
                 if (alertState.imd && ['red', 'orange', 'yellow'].includes(alertState.imd.tone)) {
                     const imd = alertState.imd;
                     const imdSourceUrl = escapeHtml(imd.sourceUrl || 'https://mausam.imd.gov.in/');
+                    const imdIssuedValue = [imd.issuedDate, imd.issuedTime].filter(Boolean).join(' ');
+                    const imdValidUntilValue = imd.validUntil || '';
                     cards.push(`
                         <article class="card alert-card alert-imd tone-${escapeHtml(imd.tone)}">
                             <div class="alert-grid">
@@ -963,8 +986,8 @@
                                 <p class="alert-summary">${escapeHtml(imd.summary || imd.info || 'IMD has issued an update for Surat.')}</p>
                                 <div class="alert-meta">
                                     <div><strong>Meaning</strong><span>${escapeHtml(imd.description || 'District-wise weather warning')}</span></div>
-                                    <div><strong>Issued</strong><span>${escapeHtml([imd.issuedDate, imd.issuedTime].filter(Boolean).join(' ')) || 'Not available'}</span></div>
-                                    <div><strong>Valid until</strong><span>${escapeHtml(imd.validUntil || 'Until further notice')}</span></div>
+                                    <div><strong>Issued</strong><span>${escapeHtml(formatImdTime(imdIssuedValue)) || 'Not available'}</span></div>
+                                    <div><strong>Valid until</strong><span>${escapeHtml(formatImdTime(imdValidUntilValue)) || 'Until further notice'}</span></div>
                                     <div><strong>Source</strong><span><a href="${imdSourceUrl}" target="_blank" rel="noreferrer">IMD</a></span></div>
                                 </div>
                             </div>
