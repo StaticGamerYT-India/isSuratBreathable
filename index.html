@@ -177,6 +177,8 @@
             position: relative;
             overflow: hidden;
             border: 1px solid color-mix(in srgb, var(--surface-variant) 78%, transparent);
+            max-width: 920px;
+            margin-inline: auto;
         }
 
         .alerts-carousel::before {
@@ -251,7 +253,7 @@
         .alerts-track {
             display: grid;
             grid-auto-flow: column;
-            grid-auto-columns: clamp(320px, 82vw, 560px);
+            grid-auto-columns: minmax(100%, 1fr);
             gap: 16px;
             overflow-x: auto;
             scroll-snap-type: x mandatory;
@@ -275,7 +277,7 @@
             scroll-snap-align: start;
             position: relative;
             overflow: hidden;
-            min-height: 230px;
+            min-height: 220px;
             padding: clamp(18px, 2vw, 24px);
             border-radius: 22px;
             box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
@@ -331,10 +333,7 @@
             margin: 0;
             font-size: 0.97rem;
             line-height: 1.55;
-            display: -webkit-box;
-            -webkit-line-clamp: 3;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
+            overflow-wrap: anywhere;
         }
 
         .alert-card .alert-meta {
@@ -399,12 +398,11 @@
             background: rgba(28, 27, 31, 0.12);
         }
 
-        }
-
         .alert-card.alert-ndma {
             background: linear-gradient(135deg, #0f172a, #334155);
             color: #fff;
             border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 18px 44px rgba(15, 23, 42, 0.22);
         }
 
         .alert-card.alert-ndma::before {
@@ -429,6 +427,10 @@
             color: var(--outline);
             font-size: 0.95rem;
             padding: 10px 0 0;
+        }
+
+        .alerts-carousel.is-hidden {
+            display: none;
         }
 
         .station h2 {
@@ -640,6 +642,7 @@
             .alerts-carousel {
                 padding: 14px;
                 gap: 12px;
+                max-width: 100%;
             }
 
             .alerts-head {
@@ -689,7 +692,6 @@
             }
 
             .alert-card .alert-summary {
-                -webkit-line-clamp: 3;
                 font-size: 0.92rem;
             }
 
@@ -739,7 +741,7 @@
     </header>
 
     <main>
-        <section class="card alerts-carousel" aria-label="Weather and disaster alerts">
+        <section id="alerts-carousel" class="card alerts-carousel" aria-label="Weather and disaster alerts">
             <div class="alerts-head">
                 <div>
                     <h2>Live Alerts for Surat</h2>
@@ -915,11 +917,12 @@
             }
 
             function renderAlertCarousel() {
+                const section = document.getElementById('alerts-carousel');
                 const track = document.getElementById('alerts-track');
                 const prevButton = document.getElementById('alerts-prev');
                 const nextButton = document.getElementById('alerts-next');
 
-                if (!track || !prevButton || !nextButton) {
+                if (!section || !track || !prevButton || !nextButton) {
                     return;
                 }
 
@@ -972,30 +975,17 @@
                             </div>
                         </article>
                     `);
-                } else {
-                    cards.push(`
-                        <article class="card alert-card alert-ndma">
-                            <div class="alert-grid">
-                                <div class="alert-header">
-                                    <h3 class="alert-title">Surat NDMA Alert</h3>
-                                    <span class="alert-badge">No alert</span>
-                                </div>
-                                <p class="alert-summary">No current NDMA alert mentions Surat right now.</p>
-                                <div class="alert-meta">
-                                    <div><strong>Status</strong><span>Quiet right now</span></div>
-                                    <div><strong>Source</strong><span><a href="${ndmaSourceUrl}" target="_blank" rel="noreferrer">NDMA search</a></span></div>
-                                </div>
-                            </div>
-                        </article>
-                    `);
                 }
 
                 if (!cards.length) {
-                    track.innerHTML = '<div class="alert-empty">No live alerts are available right now.</div>';
+                    section.classList.add('is-hidden');
+                    track.innerHTML = '';
                     prevButton.disabled = true;
                     nextButton.disabled = true;
                     return;
                 }
+
+                section.classList.remove('is-hidden');
 
                 track.innerHTML = cards.join('');
 
