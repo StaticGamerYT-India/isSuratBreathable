@@ -3,6 +3,7 @@ const fetch = require('node-fetch');
 const path = require('path');
 const app = express();
 const port = 3000;
+const IMD_SURAT_URL = 'https://mausam.imd.gov.in/imd_latest/contents/districtwisewarnings_mc.php?id=9';
 
 function buildHeaders(baseHeaders, cookie) {
   if (!cookie) {
@@ -13,6 +14,159 @@ function buildHeaders(baseHeaders, cookie) {
     cookie,
   };
 }
+
+function extractObjectForTitle(html, title) {
+  const searchIndex = html.indexOf(`"title": "${title}"`);
+
+  if (searchIndex === -1) {
+    throw new Error(`Could not find ${title} in IMD response`);
+  }
+
+  const objectStart = html.lastIndexOf('{', searchIndex);
+
+  if (objectStart === -1) {
+    throw new Error(`Could not locate the start of the ${title} object`);
+  }
+
+  let depth = 0;
+
+  for (let index = objectStart; index < html.length; index += 1) {
+    const character = html[index];
+
+    if (character === '{') {
+      depth += 1;
+    } else if (character === '}') {
+      depth -= 1;
+
+      if (depth === 0) {
+        const objectText = html.slice(objectStart, index + 1);
+        return JSON.parse(objectText);
+      }
+    }
+  }
+
+  throw new Error(`Could not parse the ${title} object from the IMD response`);
+}
+
+function stripHtml(value) {
+  return String(value || '')
+    .replace(/<br\s*\/?>(?!\n)/gi, '\n')
+    .replace(/<\/br>/gi, '\n')
+    .replace(/<\/p>/gi, '\n')
+    .replace(/<p>/gi, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/<[^>]+>/g, '')
+    .split('\n')
+    .map(part => part.trim())
+    .filter(Boolean);
+}
+
+function getAlertMeta(color) {
+  const normalizedColor = String(color || '').trim().toLowerCase();
+
+  switch (normalizedColor) {
+    case '#ff0000':
+      return {
+        level: 'Red Alert',
+        tone: 'red',
+        description: 'Severe weather warning',
+      };
+    case '#ffa500':
+      return {
+        level: 'Orange Alert',
+        tone: 'orange',
+        description: 'Be prepared for significant weather',
+      };
+    case '#ffff00':
+      return {
+        level: 'Yellow Alert',
+        tone: 'yellow',
+        description: 'Stay aware and follow updates',
+      };
+    case '#008000':
+      return {
+        level: 'No Warning',
+        tone: 'green',
+        description: 'No active district warning',
+      };
+    default:
+      return {
+        level: 'Weather Alert',
+        tone: 'neutral',
+        description: 'District-wise weather warning',
+      };
+  }
+}
+
+function parseAlertDetails(info) {
+  const lines = stripHtml(info);
+  const summary = lines.filter(line => !/^Time of issue:/i.test(line) && !/^Valid upto:/i.test(line));
+  const issuedDateLineIndex = lines.findIndex(line => /^Time of issue:/i.test(line));
+  const validDateLineIndex = lines.findIndex(line => /^Valid upto:/i.test(line));
+
+  const issuedDate = issuedDateLineIndex >= 0
+    ? lines[issuedDateLineIndex].replace(/^Time of issue:\s*/i, '').trim()
+    : '';
+
+  const issuedTime = issuedDateLineIndex >= 0 && lines[issuedDateLineIndex + 1]
+    ? lines[issuedDateLineIndex + 1]
+    : '';
+
+  const validUntil = validDateLineIndex >= 0
+    ? lines[validDateLineIndex].replace(/^Valid upto:\s*/i, '').trim()
+    : '';
+
+  return {
+    summary: summary.join(' '),
+    issuedDate,
+    issuedTime,
+    validUntil,
+    lines,
+  };
+}
+
+app.get('/api/weather-alert', async (req, res) => {
+  try {
+    const response = await fetch(IMD_SURAT_URL, {
+      headers: {
+        accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`IMD request failed with status ${response.status}`);
+    }
+
+    const html = await response.text();
+    const alert = extractObjectForTitle(html, 'SURAT');
+    const meta = getAlertMeta(alert.color);
+    const details = parseAlertDetails(alert.info);
+
+    res.json({
+      district: 'SURAT',
+      sourceUrl: IMD_SURAT_URL,
+      id: alert.id,
+      title: alert.title,
+      color: alert.color,
+      level: meta.level,
+      tone: meta.tone,
+      description: meta.description,
+      summary: details.summary,
+      issuedDate: details.issuedDate,
+      issuedTime: details.issuedTime,
+      validUntil: details.validUntil,
+      info: alert.info,
+      balloonText: alert.balloonText,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error fetching weather alert data' });
+  }
+});
 
 app.use(express.static(__dirname));
 
