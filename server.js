@@ -186,6 +186,30 @@ function getTodayDateKeyInTimeZone(timeZone = 'Asia/Kolkata') {
   return getDateKeyInTimeZone(new Date(), timeZone);
 }
 
+function parseDateOrZero(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+}
+
+function formatDateTimeInTimeZone(dateValue, timeZone = 'Asia/Kolkata') {
+  const date = new Date(dateValue);
+
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+
+  return new Intl.DateTimeFormat('en-IN', {
+    timeZone,
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+    timeZoneName: 'short',
+  }).format(date);
+}
+
 app.get('/api/weather-alert', async (req, res) => {
   try {
     const response = await fetch(IMD_SURAT_URL, {
@@ -242,13 +266,19 @@ app.get('/api/rss-alerts', async (req, res) => {
     const xml = await response.text();
     const items = parseRssItems(xml);
     const todayKey = getTodayDateKeyInTimeZone('Asia/Kolkata');
-    const todaysSuratItem = items.find(item => getDateKeyInTimeZone(item.pubDate, 'Asia/Kolkata') === todayKey && mentionsSurat(item)) || null;
+    const todaysSuratItems = items
+      .filter(item => getDateKeyInTimeZone(item.pubDate, 'Asia/Kolkata') === todayKey)
+      .filter(mentionsSurat)
+      .sort((left, right) => parseDateOrZero(right.pubDate) - parseDateOrZero(left.pubDate));
+
+    const todaysSuratItem = todaysSuratItems[0] || null;
 
     res.json({
       sourceUrl: NDMA_GUJARAT_RSS_URL,
       channelTitle: 'Gujarat: CAP Disaster Alert Feeds',
       currentItem: todaysSuratItem,
       hasTodayAlert: Boolean(todaysSuratItem),
+      publishedAtLabel: todaysSuratItem ? formatDateTimeInTimeZone(todaysSuratItem.pubDate, 'Asia/Kolkata') : '',
       items: todaysSuratItem ? [todaysSuratItem] : [],
     });
   } catch (error) {
