@@ -281,6 +281,144 @@
             font-weight: 700;
         }
 
+        .rss-panel {
+            display: grid;
+            gap: 16px;
+        }
+
+        .rss-panel summary {
+            list-style: none;
+            cursor: pointer;
+        }
+
+        .rss-panel summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .rss-shell {
+            display: grid;
+            gap: 16px;
+        }
+
+        .rss-head {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .rss-head h2 {
+            margin: 0;
+            font-size: 1.35rem;
+        }
+
+        .rss-head p {
+            margin: 0;
+            color: var(--outline);
+            font-size: 0.95rem;
+        }
+
+        .rss-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .rss-button {
+            border: none;
+            background: var(--secondary-container);
+            color: var(--on-secondary-container);
+            border-radius: 999px;
+            width: 40px;
+            height: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .rss-button:hover {
+            filter: brightness(0.96);
+        }
+
+        .rss-button:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        .rss-track {
+            display: grid;
+            grid-auto-flow: column;
+            grid-auto-columns: minmax(260px, 1fr);
+            gap: 16px;
+            overflow-x: auto;
+            padding-bottom: 6px;
+            scroll-snap-type: x proximity;
+            scrollbar-width: thin;
+        }
+
+        .rss-track::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .rss-track::-webkit-scrollbar-thumb {
+            background: var(--surface-variant);
+            border-radius: 999px;
+        }
+
+        .rss-item {
+            scroll-snap-align: start;
+            display: grid;
+            gap: 12px;
+            min-height: 100%;
+        }
+
+        .rss-item h3 {
+            margin: 0;
+            font-size: 1rem;
+            line-height: 1.45;
+        }
+
+        .rss-item p {
+            margin: 0;
+            color: var(--outline);
+            line-height: 1.55;
+        }
+
+        .rss-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--outline);
+            font-size: 0.85rem;
+        }
+
+        .rss-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: var(--surface-variant);
+            color: var(--on-secondary-container);
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        .rss-item a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        .rss-item a:hover {
+            text-decoration: underline;
+        }
+
         .station h2 {
             margin-top: 0;
             color: var(--on-surface);
@@ -521,6 +659,27 @@
 
     <main>
         <div id="alert-container" class="alert-slot"></div>
+        <details id="rss-container" class="card rss-panel" open>
+            <summary>
+                <div class="rss-shell">
+                    <div class="rss-head">
+                        <div>
+                            <h2>NDMA Gujarat Alerts</h2>
+                            <p>Latest RSS feed items from the Gujarat CAP alert stream.</p>
+                        </div>
+                        <div class="rss-controls">
+                            <button class="rss-button" type="button" id="rss-prev" aria-label="Previous alert">
+                                <span class="material-symbols-outlined">chevron_left</span>
+                            </button>
+                            <button class="rss-button" type="button" id="rss-next" aria-label="Next alert">
+                                <span class="material-symbols-outlined">chevron_right</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </summary>
+            <div id="rss-track" class="rss-track"></div>
+        </details>
         <div id="data-container"></div>
         <div id="chart-container" class="card">
             <canvas id="aqi-chart"></canvas>
@@ -538,6 +697,7 @@
             const body = document.body;
             const themeToggle = document.getElementById('theme-toggle');
             let aqiChart = null;
+            let rssItems = [];
 
             // --- THEME AND TOGGLE LOGIC ---
             function applyTheme(isDark) {
@@ -650,6 +810,98 @@
                     .replace(/>/g, '&gt;')
                     .replace(/"/g, '&quot;')
                     .replace(/'/g, '&#39;');
+            }
+
+            function stripTags(value) {
+                return String(value ?? '')
+                    .replace(/<[^>]*>/g, ' ')
+                    .replace(/\s+/g, ' ')
+                    .trim();
+            }
+
+            function formatRssDate(value) {
+                const date = new Date(value);
+                if (Number.isNaN(date.getTime())) {
+                    return '';
+                }
+
+                return date.toLocaleString('en-IN', {
+                    day: '2-digit',
+                    month: 'short',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                });
+            }
+
+            function renderRssFeed(items) {
+                const track = document.getElementById('rss-track');
+                const prevButton = document.getElementById('rss-prev');
+                const nextButton = document.getElementById('rss-next');
+
+                if (!track || !prevButton || !nextButton) {
+                    return;
+                }
+
+                rssItems = Array.isArray(items) ? items : [];
+
+                if (!rssItems.length) {
+                    track.innerHTML = '<div class="card rss-item"><h3>No live NDMA alerts right now.</h3><p>The RSS feed is reachable, but there are no items to show for Surat at the moment.</p></div>';
+                    prevButton.disabled = true;
+                    nextButton.disabled = true;
+                    return;
+                }
+
+                track.innerHTML = rssItems.map((item, index) => {
+                    const title = escapeHtml(item.title || 'Untitled alert');
+                    const description = escapeHtml(item.description || 'No description provided.');
+                    const link = escapeHtml(item.link || '#');
+                    const pubDate = escapeHtml(formatRssDate(item.pubDate) || 'Recent update');
+                    const category = escapeHtml(item.category || 'Alert');
+                    const isSurat = /surat/i.test(item.title || '') ? 'Surat' : 'Gujarat';
+
+                    return `
+                        <article class="card rss-item" data-rss-index="${index}">
+                            <span class="rss-chip">${isSurat}</span>
+                            <h3>${title}</h3>
+                            <p>${description || title}</p>
+                            <div class="rss-meta">
+                                <span>${pubDate}</span>
+                                <span>${category}</span>
+                            </div>
+                            <a href="${link}" target="_blank" rel="noreferrer">Open source alert</a>
+                        </article>
+                    `;
+                }).join('');
+
+                const scrollToItem = (direction) => {
+                    const firstCard = track.querySelector('.rss-item');
+                    if (!firstCard) {
+                        return;
+                    }
+
+                    const cardWidth = firstCard.getBoundingClientRect().width;
+                    const gap = 16;
+                    track.scrollBy({ left: direction * (cardWidth + gap), behavior: 'smooth' });
+                };
+
+                prevButton.disabled = false;
+                nextButton.disabled = false;
+                prevButton.onclick = () => scrollToItem(-1);
+                nextButton.onclick = () => scrollToItem(1);
+            }
+
+            async function fetchRssAlerts() {
+                try {
+                    const response = await fetch('/api/rss-alerts');
+                    if (!response.ok) {
+                        return;
+                    }
+
+                    const data = await response.json();
+                    renderRssFeed(data.items);
+                } catch (error) {
+                    console.error('Error fetching RSS alerts:', error);
+                }
             }
 
             function getAlertToneClass(tone) {
@@ -1043,6 +1295,7 @@
             // --- INITIALIZATION ---
             initializeTheme();
             fetchWeatherAlert();
+            fetchRssAlerts();
             fetchData();
         });
     </script>

@@ -4,6 +4,7 @@ const path = require('path');
 const app = express();
 const port = 3000;
 const IMD_SURAT_URL = 'https://mausam.imd.gov.in/imd_latest/contents/districtwisewarnings_mc.php?id=9';
+const NDMA_GUJARAT_RSS_URL = 'https://sachet.ndma.gov.in/cap_public_website/rss/rss_gujarat.xml';
 
 function buildHeaders(baseHeaders, cookie) {
   if (!cookie) {
@@ -128,6 +129,38 @@ function parseAlertDetails(info) {
   };
 }
 
+function decodeXmlEntities(value) {
+  return String(value || '')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .trim();
+}
+
+function extractTagValue(block, tagName) {
+  const match = block.match(new RegExp(`<${tagName}[^>]*>([\s\S]*?)<\/${tagName}>`, 'i'));
+  if (!match) {
+    return '';
+  }
+  return decodeXmlEntities(match[1].replace(/<[^>]+>/g, ' '));
+}
+
+function parseRssItems(xml) {
+  const itemBlocks = xml.match(/<item>[\s\S]*?<\/item>/gi) || [];
+
+  return itemBlocks.map(block => ({
+    title: extractTagValue(block, 'title'),
+    description: extractTagValue(block, 'description'),
+    link: extractTagValue(block, 'link'),
+    category: extractTagValue(block, 'category'),
+    author: extractTagValue(block, 'author'),
+    guid: extractTagValue(block, 'guid'),
+    pubDate: extractTagValue(block, 'pubDate'),
+  }));
+}
+
 app.get('/api/weather-alert', async (req, res) => {
   try {
     const response = await fetch(IMD_SURAT_URL, {
@@ -165,6 +198,33 @@ app.get('/api/weather-alert', async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Error fetching weather alert data' });
+  }
+});
+
+app.get('/api/rss-alerts', async (req, res) => {
+  try {
+    const response = await fetch(NDMA_GUJARAT_RSS_URL, {
+      headers: {
+        accept: 'application/rss+xml,application/xml,text/xml,*/*;q=0.8',
+        'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`RSS request failed with status ${response.status}`);
+    }
+
+    const xml = await response.text();
+    const items = parseRssItems(xml).slice(0, 8);
+
+    res.json({
+      sourceUrl: NDMA_GUJARAT_RSS_URL,
+      channelTitle: 'Gujarat: CAP Disaster Alert Feeds',
+      items,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Error fetching RSS alerts data' });
   }
 });
 
