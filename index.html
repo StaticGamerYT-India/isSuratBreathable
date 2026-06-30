@@ -173,6 +173,7 @@
         .alerts-carousel {
             display: grid;
             gap: 16px;
+            padding: clamp(18px, 2vw, 28px);
         }
 
         .alerts-carousel summary {
@@ -194,7 +195,7 @@
 
         .alerts-head h2 {
             margin: 0;
-            font-size: 1.35rem;
+            font-size: clamp(1.15rem, 2vw, 1.4rem);
         }
 
         .alerts-head p {
@@ -235,7 +236,7 @@
         .alerts-track {
             display: grid;
             grid-auto-flow: column;
-            grid-auto-columns: minmax(280px, 80vw);
+            grid-auto-columns: minmax(320px, 420px);
             gap: 16px;
             overflow-x: auto;
             scroll-snap-type: x mandatory;
@@ -243,6 +244,7 @@
             padding-bottom: 6px;
             -webkit-overflow-scrolling: touch;
             scrollbar-width: thin;
+            align-items: stretch;
         }
 
         .alerts-track::-webkit-scrollbar {
@@ -258,7 +260,7 @@
             scroll-snap-align: start;
             position: relative;
             overflow: hidden;
-            min-height: 220px;
+            min-height: 240px;
         }
 
         .alert-card::before {
@@ -272,7 +274,7 @@
         .alert-card .alert-grid {
             position: relative;
             display: grid;
-            gap: 14px;
+            gap: 12px;
         }
 
         .alert-card .alert-header {
@@ -285,8 +287,8 @@
 
         .alert-card .alert-title {
             margin: 0;
-            font-size: 1.2rem;
-            line-height: 1.25;
+            font-size: 1.08rem;
+            line-height: 1.3;
         }
 
         .alert-card .alert-badge {
@@ -305,26 +307,30 @@
 
         .alert-card .alert-summary {
             margin: 0;
-            font-size: 1rem;
-            line-height: 1.55;
+            font-size: 0.96rem;
+            line-height: 1.5;
+            display: -webkit-box;
+            -webkit-line-clamp: 4;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
         }
 
         .alert-card .alert-meta {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 10px;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px 12px;
         }
 
         .alert-card .alert-meta span {
             display: block;
             opacity: 0.92;
-            font-size: 0.86rem;
+            font-size: 0.84rem;
             line-height: 1.4;
         }
 
         .alert-card .alert-meta strong {
             display: block;
-            font-size: 0.92rem;
+            font-size: 0.88rem;
             margin-bottom: 2px;
         }
 
@@ -401,6 +407,12 @@
             color: var(--outline);
             font-size: 0.95rem;
             padding: 10px 0 0;
+        }
+
+        @media (min-width: 1024px) {
+            .alerts-track {
+                grid-auto-columns: minmax(340px, 380px);
+            }
         }
 
         .station h2 {
@@ -607,6 +619,74 @@
 
             .details-grid {
                 grid-template-columns: 1fr;
+            }
+
+            .alerts-carousel {
+                padding: 16px;
+                gap: 14px;
+            }
+
+            .alerts-head {
+                align-items: flex-start;
+            }
+
+            .alerts-head p {
+                font-size: 0.88rem;
+            }
+
+            .alerts-controls {
+                width: 100%;
+                justify-content: flex-end;
+            }
+
+            .carousel-button {
+                width: 36px;
+                height: 36px;
+            }
+
+            .alerts-track {
+                grid-auto-columns: 100%;
+                gap: 12px;
+            }
+
+            .alert-card {
+                min-height: auto;
+                padding: 18px;
+            }
+
+            .alert-card .alert-grid {
+                gap: 10px;
+            }
+
+            .alert-card .alert-header {
+                align-items: flex-start;
+            }
+
+            .alert-card .alert-title {
+                font-size: 1rem;
+            }
+
+            .alert-card .alert-badge {
+                font-size: 0.74rem;
+                padding: 6px 10px;
+            }
+
+            .alert-card .alert-summary {
+                -webkit-line-clamp: 3;
+                font-size: 0.9rem;
+            }
+
+            .alert-card .alert-meta {
+                grid-template-columns: 1fr;
+                gap: 6px;
+            }
+
+            .alert-card .alert-meta strong {
+                font-size: 0.82rem;
+            }
+
+            .alert-card .alert-meta span {
+                font-size: 0.8rem;
             }
 
             #chart-container {
