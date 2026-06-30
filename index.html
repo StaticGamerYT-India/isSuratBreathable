@@ -1006,7 +1006,9 @@
 
             async function fetchRssAlerts() {
                 try {
-                    const response = await fetch('/api/ndma-alerts');
+                    const response = await fetch(`/api/ndma-alerts?ts=${Date.now()}`, {
+                        cache: 'no-store',
+                    });
                     if (!response.ok) {
                         return;
                     }
@@ -1042,7 +1044,9 @@
 
             async function fetchWeatherAlert() {
                 try {
-                    const response = await fetch('/api/weather-alert');
+                    const response = await fetch(`/api/weather-alert?ts=${Date.now()}`, {
+                        cache: 'no-store',
+                    });
                     if (!response.ok) {
                         return;
                     }
@@ -1384,6 +1388,11 @@
             fetchWeatherAlert();
             fetchRssAlerts();
             fetchData();
+
+            setInterval(() => {
+                fetchWeatherAlert();
+                fetchRssAlerts();
+            }, 5 * 60 * 1000);
         });
     </script>
 </body>

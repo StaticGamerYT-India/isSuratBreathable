@@ -21,6 +21,14 @@ function buildHeaders(baseHeaders, cookie) {
   };
 }
 
+function setNoStoreHeaders(res) {
+  res.set({
+    'Cache-Control': 'no-store, max-age=0, must-revalidate',
+    Pragma: 'no-cache',
+    Expires: '0',
+  });
+}
+
 function extractObjectForTitle(html, title) {
   const searchIndex = html.indexOf(`"title": "${title}"`);
 
@@ -141,7 +149,12 @@ function parseDateOrZero(value) {
 
 app.get('/api/weather-alert', async (req, res) => {
   try {
-    const response = await fetch(IMD_SURAT_URL, {
+    setNoStoreHeaders(res);
+
+    const imdUrl = new URL(IMD_SURAT_URL);
+    imdUrl.searchParams.set('_', String(Date.now()));
+
+    const response = await fetch(imdUrl.toString(), {
       headers: {
         accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
@@ -181,10 +194,13 @@ app.get('/api/weather-alert', async (req, res) => {
 
 app.get('/api/ndma-alerts', async (req, res) => {
   try {
+    setNoStoreHeaders(res);
+
     const url = new URL(NDMA_SURAT_ALERTS_URL);
     Object.entries(SURAT_ALERT_QUERY).forEach(([key, value]) => {
       url.searchParams.set(key, value);
     });
+    url.searchParams.set('_', String(Date.now()));
 
     const response = await fetch(url, {
       method: 'POST',
