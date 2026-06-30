@@ -164,6 +164,123 @@
             transform: translateY(-5px);
         }
 
+        .alert-slot {
+            display: grid;
+            gap: 20px;
+        }
+
+        .weather-alert-card {
+            border: 1px solid transparent;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .weather-alert-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            opacity: 0.12;
+            pointer-events: none;
+        }
+
+        .weather-alert-card.tone-red {
+            background: linear-gradient(135deg, #b71c1c, #d32f2f);
+            color: #fff;
+            border-color: #7f0000;
+        }
+
+        .weather-alert-card.tone-red::before {
+            background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.35), transparent 55%);
+        }
+
+        .weather-alert-card.tone-orange {
+            background: linear-gradient(135deg, #ef6c00, #fb8c00);
+            color: #fff;
+            border-color: #e65100;
+        }
+
+        .weather-alert-card.tone-orange::before {
+            background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.28), transparent 55%);
+        }
+
+        .weather-alert-card.tone-yellow {
+            background: linear-gradient(135deg, #f9a825, #fdd835);
+            color: #1c1b1f;
+            border-color: #e6b800;
+        }
+
+        .weather-alert-card.tone-yellow::before {
+            background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.55), transparent 55%);
+        }
+
+        .weather-alert-card .alert-grid {
+            position: relative;
+            display: grid;
+            gap: 14px;
+        }
+
+        .weather-alert-card .alert-header {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .weather-alert-card .alert-title {
+            margin: 0;
+            font-size: 1.35rem;
+            line-height: 1.2;
+        }
+
+        .weather-alert-card .alert-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+            background: rgba(255, 255, 255, 0.16);
+            backdrop-filter: blur(6px);
+        }
+
+        .weather-alert-card.tone-yellow .alert-badge {
+            background: rgba(28, 27, 31, 0.12);
+        }
+
+        .weather-alert-card .alert-summary {
+            margin: 0;
+            font-size: 1.05rem;
+            line-height: 1.55;
+        }
+
+        .weather-alert-card .alert-meta {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 10px;
+        }
+
+        .weather-alert-card .alert-meta span {
+            display: block;
+            opacity: 0.92;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .weather-alert-card .alert-meta strong {
+            display: block;
+            font-size: 0.95rem;
+            margin-bottom: 2px;
+        }
+
+        .weather-alert-card a {
+            color: inherit;
+            font-weight: 700;
+        }
+
         .station h2 {
             margin-top: 0;
             color: var(--on-surface);
@@ -403,6 +520,7 @@
     </header>
 
     <main>
+        <div id="alert-container" class="alert-slot"></div>
         <div id="data-container"></div>
         <div id="chart-container" class="card">
             <canvas id="aqi-chart"></canvas>
@@ -532,6 +650,69 @@
                     .replace(/>/g, '&gt;')
                     .replace(/"/g, '&quot;')
                     .replace(/'/g, '&#39;');
+            }
+
+            function getAlertToneClass(tone) {
+                const normalizedTone = String(tone || '').toLowerCase();
+
+                if (normalizedTone === 'red') return 'tone-red';
+                if (normalizedTone === 'orange') return 'tone-orange';
+                if (normalizedTone === 'yellow') return 'tone-yellow';
+                return '';
+            }
+
+            function renderWeatherAlert(alert) {
+                const container = document.getElementById('alert-container');
+
+                if (!container) {
+                    return;
+                }
+
+                const activeTone = getAlertToneClass(alert?.tone);
+                if (!activeTone) {
+                    container.innerHTML = '';
+                    return;
+                }
+
+                const title = escapeHtml(alert.title || 'Surat Weather Alert');
+                const level = escapeHtml(alert.level || 'Weather Alert');
+                const description = escapeHtml(alert.description || 'District-wise weather warning');
+                const summary = escapeHtml(alert.summary || alert.info || 'IMD has issued an update for Surat.');
+                const issuedDate = escapeHtml([alert.issuedDate, alert.issuedTime].filter(Boolean).join(' '));
+                const validUntil = escapeHtml(alert.validUntil || 'Until further notice');
+                const sourceUrl = escapeHtml(alert.sourceUrl || 'https://mausam.imd.gov.in/');
+
+                container.innerHTML = `
+                    <div class="card weather-alert-card ${activeTone}">
+                        <div class="alert-grid">
+                            <div class="alert-header">
+                                <h2 class="alert-title">${title}</h2>
+                                <span class="alert-badge">${level}</span>
+                            </div>
+                            <p class="alert-summary">${summary}</p>
+                            <div class="alert-meta">
+                                <div><strong>What it means</strong><span>${description}</span></div>
+                                <div><strong>Issued</strong><span>${issuedDate || 'Not available'}</span></div>
+                                <div><strong>Valid until</strong><span>${validUntil}</span></div>
+                                <div><strong>Source</strong><span><a href="${sourceUrl}" target="_blank" rel="noreferrer">IMD District Warnings</a></span></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            async function fetchWeatherAlert() {
+                try {
+                    const response = await fetch('/api/weather-alert');
+                    if (!response.ok) {
+                        return;
+                    }
+
+                    const alert = await response.json();
+                    renderWeatherAlert(alert);
+                } catch (error) {
+                    console.error('Error fetching weather alert:', error);
+                }
             }
 
             // --- DATA FETCHING AND RENDERING ---
@@ -861,6 +1042,7 @@
 
             // --- INITIALIZATION ---
             initializeTheme();
+            fetchWeatherAlert();
             fetchData();
         });
     </script>
