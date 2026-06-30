@@ -880,6 +880,17 @@
                                 callback: (value) => `${value}%`
                             },
                             grid: { drawOnChartArea: false, color: gridColor }
+                        },
+                        yTemperature: {
+                            display: true,
+                            position: 'right',
+                            title: { display: true, text: 'Temperature (°C)', color: textColor },
+                            ticks: {
+                                color: textColor,
+                                maxTicksLimit: isMobile ? 5 : 8,
+                                callback: (value) => `${value}°C`
+                            },
+                            grid: { drawOnChartArea: false, color: gridColor }
                         }
                     }
                 };
@@ -1377,12 +1388,18 @@
                         return parseFloat(humidityValue) || 0;
                     };
 
+                    const getTemperatureValue = (entry) => {
+                        const temperatureValue = entry.Ambient_Temperature ?? entry.temperature ?? entry.Temperature;
+                        return parseFloat(temperatureValue) || 0;
+                    };
+
                     const datasets = [
                         { label: 'PM2.5', data: data.data.map(d => d.PM2_5).reverse(), borderColor: '#ff6384', tension: 0.2, fill: false },
                         { label: 'PM10', data: data.data.map(d => d.PM10).reverse(), borderColor: '#36a2eb', tension: 0.2, fill: false },
                         { label: 'SO2', data: data.data.map(d => d.So2).reverse(), borderColor: '#ffce56', tension: 0.2, fill: false },
                         { label: 'NOx', data: data.data.map(d => d.NOx).reverse(), borderColor: '#4bc0c0', tension: 0.2, fill: false },
                         { label: 'CO', data: data.data.map(d => d.CO).reverse(), borderColor: '#9966ff', tension: 0.2, fill: false },
+                        { label: 'Temperature', data: data.data.map(getTemperatureValue).reverse(), borderColor: '#ff9800', backgroundColor: 'rgba(255, 152, 0, 0.12)', tension: 0.2, fill: false, yAxisID: 'yTemperature' },
                         { label: 'Humidity', data: data.data.map(getHumidityValue).reverse(), borderColor: '#00bcd4', backgroundColor: 'rgba(0, 188, 212, 0.12)', tension: 0.2, fill: false, yAxisID: 'yHumidity' },
                     ];
 
