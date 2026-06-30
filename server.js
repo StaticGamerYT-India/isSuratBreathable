@@ -140,7 +140,7 @@ function decodeXmlEntities(value) {
 }
 
 function extractTagValue(block, tagName) {
-  const match = block.match(new RegExp(`<${tagName}[^>]*>([\s\S]*?)<\/${tagName}>`, 'i'));
+  const match = block.match(new RegExp(`<${tagName}[^>]*>([\\s\\S]*?)<\/${tagName}>`, 'i'));
   if (!match) {
     return '';
   }
@@ -159,6 +159,25 @@ function parseRssItems(xml) {
     guid: extractTagValue(block, 'guid'),
     pubDate: extractTagValue(block, 'pubDate'),
   }));
+}
+
+function getDateKeyInTimeZone(dateValue, timeZone = 'Asia/Kolkata') {
+  const date = new Date(dateValue);
+
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date);
+}
+
+function getTodayDateKeyInTimeZone(timeZone = 'Asia/Kolkata') {
+  return getDateKeyInTimeZone(new Date(), timeZone);
 }
 
 app.get('/api/weather-alert', async (req, res) => {
@@ -215,12 +234,17 @@ app.get('/api/rss-alerts', async (req, res) => {
     }
 
     const xml = await response.text();
-    const items = parseRssItems(xml).slice(0, 8);
+    const items = parseRssItems(xml);
+    const todayKey = getTodayDateKeyInTimeZone('Asia/Kolkata');
+    const todaysItems = items.filter(item => getDateKeyInTimeZone(item.pubDate, 'Asia/Kolkata') === todayKey);
+    const currentItem = todaysItems[0] || null;
 
     res.json({
       sourceUrl: NDMA_GUJARAT_RSS_URL,
       channelTitle: 'Gujarat: CAP Disaster Alert Feeds',
-      items,
+      currentItem,
+      hasTodayAlert: Boolean(currentItem),
+      items: currentItem ? [currentItem] : [],
     });
   } catch (error) {
     console.error(error);
