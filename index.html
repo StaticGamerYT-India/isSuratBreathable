@@ -938,9 +938,37 @@
                 });
             }
 
+            function formatImdDate(value) {
+                if (!value) {
+                    return '';
+                }
+
+                const date = new Date(value);
+                if (Number.isNaN(date.getTime())) {
+                    return String(value);
+                }
+
+                return date.toLocaleDateString('en-IN', {
+                    timeZone: 'Asia/Kolkata',
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                });
+            }
+
             function formatImdTime(value) {
                 if (!value) {
                     return '';
+                }
+
+                const hrsMatch = String(value).match(/^(\d{3,4})\s*Hrs$/i);
+                if (hrsMatch) {
+                    const padded = hrsMatch[1].padStart(4, '0');
+                    const hours = Number(padded.slice(0, 2));
+                    const minutes = padded.slice(2, 4);
+                    const normalizedHours = hours % 12 || 12;
+                    const meridiem = hours >= 12 ? 'p.m.' : 'a.m.';
+                    return `${normalizedHours}:${minutes} ${meridiem}`;
                 }
 
                 const date = new Date(value);
@@ -959,6 +987,17 @@
                 }).replace(/\bAM\b/g, 'a.m.').replace(/\bPM\b/g, 'p.m.');
             }
 
+            function formatImdDateTime(dateValue, timeValue) {
+                const formattedDate = formatImdDate(dateValue);
+                const formattedTime = formatImdTime(timeValue);
+
+                if (formattedDate && formattedTime) {
+                    return `${formattedDate}, ${formattedTime}`;
+                }
+
+                return formattedDate || formattedTime || '';
+            }
+
             function renderAlertCarousel() {
                 const section = document.getElementById('alerts-carousel');
                 const track = document.getElementById('alerts-track');
@@ -974,8 +1013,6 @@
                 if (alertState.imd && ['red', 'orange', 'yellow'].includes(alertState.imd.tone)) {
                     const imd = alertState.imd;
                     const imdSourceUrl = escapeHtml(imd.sourceUrl || 'https://mausam.imd.gov.in/');
-                    const imdIssuedValue = [imd.issuedDate, imd.issuedTime].filter(Boolean).join(' ');
-                    const imdValidUntilValue = imd.validUntil || '';
                     cards.push(`
                         <article class="card alert-card alert-imd tone-${escapeHtml(imd.tone)}">
                             <div class="alert-grid">
@@ -986,8 +1023,8 @@
                                 <p class="alert-summary">${escapeHtml(imd.summary || imd.info || 'IMD has issued an update for Surat.')}</p>
                                 <div class="alert-meta">
                                     <div><strong>Meaning</strong><span>${escapeHtml(imd.description || 'District-wise weather warning')}</span></div>
-                                    <div><strong>Issued</strong><span>${escapeHtml(formatImdTime(imdIssuedValue)) || 'Not available'}</span></div>
-                                    <div><strong>Valid until</strong><span>${escapeHtml(formatImdTime(imdValidUntilValue)) || 'Until further notice'}</span></div>
+                                    <div><strong>Issued</strong><span>${escapeHtml(formatImdDateTime(imd.issuedDate, imd.issuedTime)) || 'Not available'}</span></div>
+                                    <div><strong>Valid until</strong><span>${escapeHtml(formatImdDateTime(imd.issuedDate, imd.validUntil)) || 'Until further notice'}</span></div>
                                     <div><strong>Source</strong><span><a href="${imdSourceUrl}" target="_blank" rel="noreferrer">IMD</a></span></div>
                                 </div>
                             </div>
