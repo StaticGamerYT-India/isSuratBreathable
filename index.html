@@ -174,6 +174,21 @@
             display: grid;
             gap: 16px;
             padding: clamp(18px, 2vw, 28px);
+            position: relative;
+            overflow: hidden;
+            border: 1px solid color-mix(in srgb, var(--surface-variant) 78%, transparent);
+        }
+
+        .alerts-carousel::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(103, 80, 164, 0.06), transparent 35%, rgba(255, 255, 255, 0.03));
+            pointer-events: none;
+        }
+
+        body.dark-mode .alerts-carousel::before {
+            background: linear-gradient(135deg, rgba(208, 188, 255, 0.08), transparent 40%, rgba(255, 255, 255, 0.02));
         }
 
         .alerts-carousel summary {
@@ -236,7 +251,7 @@
         .alerts-track {
             display: grid;
             grid-auto-flow: column;
-            grid-auto-columns: 100%;
+            grid-auto-columns: clamp(320px, 82vw, 560px);
             gap: 16px;
             overflow-x: auto;
             scroll-snap-type: x mandatory;
@@ -260,8 +275,14 @@
             scroll-snap-align: start;
             position: relative;
             overflow: hidden;
-            min-height: 220px;
+            min-height: 230px;
             padding: clamp(18px, 2vw, 24px);
+            border-radius: 22px;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+        }
+
+        body.dark-mode .alert-card {
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.24);
         }
 
         .alert-card::before {
@@ -275,7 +296,7 @@
         .alert-card .alert-grid {
             position: relative;
             display: grid;
-            gap: 14px;
+            gap: 12px;
         }
 
         .alert-card .alert-header {
@@ -308,8 +329,8 @@
 
         .alert-card .alert-summary {
             margin: 0;
-            font-size: 0.98rem;
-            line-height: 1.5;
+            font-size: 0.97rem;
+            line-height: 1.55;
             display: -webkit-box;
             -webkit-line-clamp: 3;
             -webkit-box-orient: vertical;
@@ -319,7 +340,7 @@
         .alert-card .alert-meta {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-            gap: 10px 14px;
+            gap: 12px 14px;
         }
 
         .alert-card .alert-meta span {
@@ -381,7 +402,7 @@
         }
 
         .alert-card.alert-ndma {
-            background: linear-gradient(135deg, #101828, #344054);
+            background: linear-gradient(135deg, #0f172a, #334155);
             color: #fff;
             border: 1px solid rgba(255, 255, 255, 0.08);
         }
@@ -646,7 +667,8 @@
 
             .alert-card {
                 min-height: auto;
-                padding: 18px;
+                padding: 16px;
+                border-radius: 18px;
             }
 
             .alert-card .alert-grid {
@@ -673,19 +695,15 @@
 
             .alert-card .alert-meta {
                 grid-template-columns: 1fr;
-                gap: 6px;
-            }
-
-            .alert-card .alert-meta strong {
-                font-size: 0.82rem;
+                gap: 8px;
             }
 
             .alert-card .alert-meta span {
-                font-size: 0.8rem;
+                font-size: 0.82rem;
             }
 
             .alert-card .alert-meta strong {
-                font-size: 0.84rem;
+                font-size: 0.83rem;
             }
 
             #chart-container {

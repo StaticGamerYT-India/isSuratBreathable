@@ -141,9 +141,11 @@ function decodeXmlEntities(value) {
 
 function extractTagValue(block, tagName) {
   const match = block.match(new RegExp(`<${tagName}[^>]*>([\\s\\S]*?)<\/${tagName}>`, 'i'));
+
   if (!match) {
     return '';
   }
+
   return decodeXmlEntities(match[1].replace(/<[^>]+>/g, ' '));
 }
 
@@ -159,6 +161,10 @@ function parseRssItems(xml) {
     guid: extractTagValue(block, 'guid'),
     pubDate: extractTagValue(block, 'pubDate'),
   }));
+}
+
+function mentionsSurat(item) {
+  return /surat/i.test(`${item?.title || ''} ${item?.description || ''}`);
 }
 
 function getDateKeyInTimeZone(dateValue, timeZone = 'Asia/Kolkata') {
@@ -236,15 +242,14 @@ app.get('/api/rss-alerts', async (req, res) => {
     const xml = await response.text();
     const items = parseRssItems(xml);
     const todayKey = getTodayDateKeyInTimeZone('Asia/Kolkata');
-    const todaysItems = items.filter(item => getDateKeyInTimeZone(item.pubDate, 'Asia/Kolkata') === todayKey);
-    const currentItem = todaysItems[0] || null;
+    const todaysSuratItem = items.find(item => getDateKeyInTimeZone(item.pubDate, 'Asia/Kolkata') === todayKey && mentionsSurat(item)) || null;
 
     res.json({
       sourceUrl: NDMA_GUJARAT_RSS_URL,
       channelTitle: 'Gujarat: CAP Disaster Alert Feeds',
-      currentItem,
-      hasTodayAlert: Boolean(currentItem),
-      items: currentItem ? [currentItem] : [],
+      currentItem: todaysSuratItem,
+      hasTodayAlert: Boolean(todaysSuratItem),
+      items: todaysSuratItem ? [todaysSuratItem] : [],
     });
   } catch (error) {
     console.error(error);
