@@ -55,8 +55,12 @@
             background-color: var(--background);
             color: var(--on-surface);
             margin: 0;
-            padding: 20px;
+            padding: clamp(12px, 2vw, 20px);
             transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
         }
 
         body.dark-mode {
@@ -81,8 +85,9 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            max-width: 1200px;
-            margin: 0 auto 40px auto;
+            width: min(1200px, 100%);
+            margin: 0 auto 32px auto;
+            gap: 16px;
         }
 
         h1 {
@@ -147,10 +152,11 @@
         /* End of new toggle switch CSS */
 
         main {
-            max-width: 1200px;
+            width: min(1200px, 100%);
             margin: 0 auto;
             display: grid;
-            gap: 30px;
+            gap: 24px;
+            align-items: start;
         }
 
         .card {
@@ -164,168 +170,46 @@
             transform: translateY(-5px);
         }
 
-        .alert-slot {
-            display: grid;
-            gap: 20px;
-        }
-
-        .weather-alert-card {
-            border: 1px solid transparent;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .weather-alert-card::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            opacity: 0.12;
-            pointer-events: none;
-        }
-
-        .weather-alert-card.tone-red {
-            background: linear-gradient(135deg, #b71c1c, #d32f2f);
-            color: #fff;
-            border-color: #7f0000;
-        }
-
-        .weather-alert-card.tone-red::before {
-            background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.35), transparent 55%);
-        }
-
-        .weather-alert-card.tone-orange {
-            background: linear-gradient(135deg, #ef6c00, #fb8c00);
-            color: #fff;
-            border-color: #e65100;
-        }
-
-        .weather-alert-card.tone-orange::before {
-            background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.28), transparent 55%);
-        }
-
-        .weather-alert-card.tone-yellow {
-            background: linear-gradient(135deg, #f9a825, #fdd835);
-            color: #1c1b1f;
-            border-color: #e6b800;
-        }
-
-        .weather-alert-card.tone-yellow::before {
-            background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.55), transparent 55%);
-        }
-
-        .weather-alert-card .alert-grid {
-            position: relative;
-            display: grid;
-            gap: 14px;
-        }
-
-        .weather-alert-card .alert-header {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .weather-alert-card .alert-title {
-            margin: 0;
-            font-size: 1.35rem;
-            line-height: 1.2;
-        }
-
-        .weather-alert-card .alert-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 12px;
-            border-radius: 999px;
-            font-size: 0.85rem;
-            font-weight: 700;
-            letter-spacing: 0.02em;
-            text-transform: uppercase;
-            background: rgba(255, 255, 255, 0.16);
-            backdrop-filter: blur(6px);
-        }
-
-        .weather-alert-card.tone-yellow .alert-badge {
-            background: rgba(28, 27, 31, 0.12);
-        }
-
-        .weather-alert-card .alert-summary {
-            margin: 0;
-            font-size: 1.05rem;
-            line-height: 1.55;
-        }
-
-        .weather-alert-card .alert-meta {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 10px;
-        }
-
-        .weather-alert-card .alert-meta span {
-            display: block;
-            opacity: 0.92;
-            font-size: 0.9rem;
-            line-height: 1.4;
-        }
-
-        .weather-alert-card .alert-meta strong {
-            display: block;
-            font-size: 0.95rem;
-            margin-bottom: 2px;
-        }
-
-        .weather-alert-card a {
-            color: inherit;
-            font-weight: 700;
-        }
-
-        .rss-panel {
+        .alerts-carousel {
             display: grid;
             gap: 16px;
         }
 
-        .rss-panel summary {
+        .alerts-carousel summary {
             list-style: none;
             cursor: pointer;
         }
 
-        .rss-panel summary::-webkit-details-marker {
+        .alerts-carousel summary::-webkit-details-marker {
             display: none;
         }
 
-        .rss-shell {
-            display: grid;
-            gap: 16px;
-        }
-
-        .rss-head {
+        .alerts-head {
             display: flex;
             flex-wrap: wrap;
-            gap: 12px;
             justify-content: space-between;
             align-items: center;
+            gap: 12px;
         }
 
-        .rss-head h2 {
+        .alerts-head h2 {
             margin: 0;
             font-size: 1.35rem;
         }
 
-        .rss-head p {
+        .alerts-head p {
             margin: 0;
             color: var(--outline);
             font-size: 0.95rem;
         }
 
-        .rss-controls {
+        .alerts-controls {
             display: flex;
             align-items: center;
             gap: 8px;
         }
 
-        .rss-button {
+        .carousel-button {
             border: none;
             background: var(--secondary-container);
             color: var(--on-secondary-container);
@@ -339,84 +223,184 @@
             box-shadow: var(--shadow-sm);
         }
 
-        .rss-button:hover {
+        .carousel-button:hover {
             filter: brightness(0.96);
         }
 
-        .rss-button:disabled {
+        .carousel-button:disabled {
             opacity: 0.45;
             cursor: not-allowed;
         }
 
-        .rss-track {
+        .alerts-track {
             display: grid;
             grid-auto-flow: column;
-            grid-auto-columns: minmax(260px, 1fr);
+            grid-auto-columns: minmax(280px, 80vw);
             gap: 16px;
             overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            scroll-padding-inline: 4px;
             padding-bottom: 6px;
-            scroll-snap-type: x proximity;
+            -webkit-overflow-scrolling: touch;
             scrollbar-width: thin;
         }
 
-        .rss-track::-webkit-scrollbar {
+        .alerts-track::-webkit-scrollbar {
             height: 8px;
         }
 
-        .rss-track::-webkit-scrollbar-thumb {
+        .alerts-track::-webkit-scrollbar-thumb {
             background: var(--surface-variant);
             border-radius: 999px;
         }
 
-        .rss-item {
+        .alert-card {
             scroll-snap-align: start;
+            position: relative;
+            overflow: hidden;
+            min-height: 220px;
+        }
+
+        .alert-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            opacity: 0.12;
+            pointer-events: none;
+        }
+
+        .alert-card .alert-grid {
+            position: relative;
             display: grid;
-            gap: 12px;
-            min-height: 100%;
+            gap: 14px;
         }
 
-        .rss-item h3 {
-            margin: 0;
-            font-size: 1rem;
-            line-height: 1.45;
-        }
-
-        .rss-item p {
-            margin: 0;
-            color: var(--outline);
-            line-height: 1.55;
-        }
-
-        .rss-meta {
+        .alert-card .alert-header {
             display: flex;
             flex-wrap: wrap;
             gap: 10px;
-            justify-content: space-between;
             align-items: center;
-            color: var(--outline);
-            font-size: 0.85rem;
+            justify-content: space-between;
         }
 
-        .rss-chip {
+        .alert-card .alert-title {
+            margin: 0;
+            font-size: 1.2rem;
+            line-height: 1.25;
+        }
+
+        .alert-card .alert-badge {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
-            padding: 6px 10px;
+            gap: 8px;
+            padding: 8px 12px;
             border-radius: 999px;
-            background: var(--surface-variant);
-            color: var(--on-secondary-container);
-            font-size: 0.8rem;
+            font-size: 0.82rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+            background: rgba(255, 255, 255, 0.16);
+            backdrop-filter: blur(6px);
+        }
+
+        .alert-card .alert-summary {
+            margin: 0;
+            font-size: 1rem;
+            line-height: 1.55;
+        }
+
+        .alert-card .alert-meta {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 10px;
+        }
+
+        .alert-card .alert-meta span {
+            display: block;
+            opacity: 0.92;
+            font-size: 0.86rem;
+            line-height: 1.4;
+        }
+
+        .alert-card .alert-meta strong {
+            display: block;
+            font-size: 0.92rem;
+            margin-bottom: 2px;
+        }
+
+        .alert-card a {
+            color: inherit;
             font-weight: 700;
         }
 
-        .rss-item a {
-            color: var(--primary);
-            text-decoration: none;
-            font-weight: 700;
+        .alert-card.alert-imd {
+            border: 1px solid transparent;
         }
 
-        .rss-item a:hover {
-            text-decoration: underline;
+        .alert-card.alert-imd.tone-red {
+            background: linear-gradient(135deg, #b71c1c, #d32f2f);
+            color: #fff;
+            border-color: #7f0000;
+        }
+
+        .alert-card.alert-imd.tone-red::before {
+            background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.35), transparent 55%);
+        }
+
+        .alert-card.alert-imd.tone-orange {
+            background: linear-gradient(135deg, #ef6c00, #fb8c00);
+            color: #fff;
+            border-color: #e65100;
+        }
+
+        .alert-card.alert-imd.tone-orange::before {
+            background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.28), transparent 55%);
+        }
+
+        .alert-card.alert-imd.tone-yellow {
+            background: linear-gradient(135deg, #f9a825, #fdd835);
+            color: #1c1b1f;
+            border-color: #e6b800;
+        }
+
+        .alert-card.alert-imd.tone-yellow::before {
+            background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.55), transparent 55%);
+        }
+
+        .alert-card.alert-imd.tone-yellow .alert-badge {
+            background: rgba(28, 27, 31, 0.12);
+        }
+
+        }
+
+        .alert-card.alert-ndma {
+            background: linear-gradient(135deg, #101828, #344054);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .alert-card.alert-ndma::before {
+            background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.14), transparent 55%);
+        }
+
+        .alert-card.alert-ndma .alert-badge {
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .alert-card.alert-ndma .alert-summary,
+        .alert-card.alert-ndma .alert-meta span {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .alert-card.alert-ndma .alert-meta strong,
+        .alert-card.alert-ndma a {
+            color: #fff;
+        }
+
+        .alert-empty {
+            color: var(--outline);
+            font-size: 0.95rem;
+            padding: 10px 0 0;
         }
 
         .station h2 {
@@ -658,28 +642,23 @@
     </header>
 
     <main>
-        <div id="alert-container" class="alert-slot"></div>
-        <details id="rss-container" class="card rss-panel" open>
-            <summary>
-                <div class="rss-shell">
-                    <div class="rss-head">
-                        <div>
-                            <h2>NDMA Gujarat Alerts</h2>
-                            <p>Latest RSS feed items from the Gujarat CAP alert stream.</p>
-                        </div>
-                        <div class="rss-controls">
-                            <button class="rss-button" type="button" id="rss-prev" aria-label="Previous alert">
-                                <span class="material-symbols-outlined">chevron_left</span>
-                            </button>
-                            <button class="rss-button" type="button" id="rss-next" aria-label="Next alert">
-                                <span class="material-symbols-outlined">chevron_right</span>
-                            </button>
-                        </div>
-                    </div>
+        <section class="card alerts-carousel" aria-label="Weather and disaster alerts">
+            <div class="alerts-head">
+                <div>
+                    <h2>Live Alerts for Surat</h2>
+                    <p>Swipe through IMD and NDMA cards.</p>
                 </div>
-            </summary>
-            <div id="rss-track" class="rss-track"></div>
-        </details>
+                <div class="alerts-controls">
+                    <button class="carousel-button" type="button" id="alerts-prev" aria-label="Previous alert">
+                        <span class="material-symbols-outlined">chevron_left</span>
+                    </button>
+                    <button class="carousel-button" type="button" id="alerts-next" aria-label="Next alert">
+                        <span class="material-symbols-outlined">chevron_right</span>
+                    </button>
+                </div>
+            </div>
+            <div id="alerts-track" class="alerts-track" aria-live="polite"></div>
+        </section>
         <div id="data-container"></div>
         <div id="chart-container" class="card">
             <canvas id="aqi-chart"></canvas>
@@ -697,7 +676,10 @@
             const body = document.body;
             const themeToggle = document.getElementById('theme-toggle');
             let aqiChart = null;
-            let rssItems = [];
+            const alertState = {
+                imd: null,
+                ndmaItems: [],
+            };
 
             // --- THEME AND TOGGLE LOGIC ---
             function applyTheme(isDark) {
@@ -812,14 +794,7 @@
                     .replace(/'/g, '&#39;');
             }
 
-            function stripTags(value) {
-                return String(value ?? '')
-                    .replace(/<[^>]*>/g, ' ')
-                    .replace(/\s+/g, ' ')
-                    .trim();
-            }
-
-            function formatRssDate(value) {
+            function formatFeedDate(value) {
                 const date = new Date(value);
                 if (Number.isNaN(date.getTime())) {
                     return '';
@@ -833,48 +808,77 @@
                 });
             }
 
-            function renderRssFeed(items) {
-                const track = document.getElementById('rss-track');
-                const prevButton = document.getElementById('rss-prev');
-                const nextButton = document.getElementById('rss-next');
+            function renderAlertCarousel() {
+                const track = document.getElementById('alerts-track');
+                const prevButton = document.getElementById('alerts-prev');
+                const nextButton = document.getElementById('alerts-next');
 
                 if (!track || !prevButton || !nextButton) {
                     return;
                 }
 
-                rssItems = Array.isArray(items) ? items : [];
+                const cards = [];
 
-                if (!rssItems.length) {
-                    track.innerHTML = '<div class="card rss-item"><h3>No live NDMA alerts right now.</h3><p>The RSS feed is reachable, but there are no items to show for Surat at the moment.</p></div>';
+                if (alertState.imd && ['red', 'orange', 'yellow'].includes(alertState.imd.tone)) {
+                    const imd = alertState.imd;
+                    cards.push(`
+                        <article class="card alert-card alert-imd tone-${escapeHtml(imd.tone)}">
+                            <div class="alert-grid">
+                                <div class="alert-header">
+                                    <h3 class="alert-title">${escapeHtml(imd.title || 'IMD Surat Alert')}</h3>
+                                    <span class="alert-badge">${escapeHtml(imd.level || 'Weather Alert')}</span>
+                                </div>
+                                <p class="alert-summary">${escapeHtml(imd.summary || imd.info || 'IMD has issued an update for Surat.')}</p>
+                                <div class="alert-meta">
+                                    <div><strong>Meaning</strong><span>${escapeHtml(imd.description || 'District-wise weather warning')}</span></div>
+                                    <div><strong>Issued</strong><span>${escapeHtml([imd.issuedDate, imd.issuedTime].filter(Boolean).join(' ')) || 'Not available'}</span></div>
+                                    <div><strong>Valid until</strong><span>${escapeHtml(imd.validUntil || 'Until further notice')}</span></div>
+                                    <div><strong>Source</strong><span><a href="${escapeHtml(imd.sourceUrl || 'https://mausam.imd.gov.in/') }" target="_blank" rel="noreferrer">IMD</a></span></div>
+                                </div>
+                            </div>
+                        </article>
+                    `);
+                }
+
+                const ndmaCards = (alertState.ndmaItems || []).slice(0, 5).map((item, index) => {
+                    const title = escapeHtml(item.title || 'Untitled alert');
+                    const summary = escapeHtml(item.description || item.title || 'No description provided.');
+                    const link = escapeHtml(item.link || '#');
+                    const pubDate = escapeHtml(formatFeedDate(item.pubDate) || 'Recent update');
+                    const category = escapeHtml(item.category || 'Alert');
+
+                    return `
+                        <article class="card alert-card alert-ndma">
+                            <div class="alert-grid">
+                                <div class="alert-header">
+                                    <h3 class="alert-title">${title}</h3>
+                                    <span class="alert-badge">NDMA</span>
+                                </div>
+                                <p class="alert-summary">${summary}</p>
+                                <div class="alert-meta">
+                                    <div><strong>When</strong><span>${pubDate}</span></div>
+                                    <div><strong>Type</strong><span>${category}</span></div>
+                                    <div><strong>Item</strong><span>${index + 1}</span></div>
+                                    <div><strong>Source</strong><span><a href="${link}" target="_blank" rel="noreferrer">Open alert</a></span></div>
+                                </div>
+                            </div>
+                        </article>
+                    `;
+                });
+
+                cards.push(...ndmaCards);
+
+                if (!cards.length) {
+                    track.innerHTML = '<div class="alert-empty">No live alerts are available right now.</div>';
                     prevButton.disabled = true;
                     nextButton.disabled = true;
                     return;
                 }
 
-                track.innerHTML = rssItems.map((item, index) => {
-                    const title = escapeHtml(item.title || 'Untitled alert');
-                    const description = escapeHtml(item.description || 'No description provided.');
-                    const link = escapeHtml(item.link || '#');
-                    const pubDate = escapeHtml(formatRssDate(item.pubDate) || 'Recent update');
-                    const category = escapeHtml(item.category || 'Alert');
-                    const isSurat = /surat/i.test(item.title || '') ? 'Surat' : 'Gujarat';
+                track.innerHTML = cards.join('');
 
-                    return `
-                        <article class="card rss-item" data-rss-index="${index}">
-                            <span class="rss-chip">${isSurat}</span>
-                            <h3>${title}</h3>
-                            <p>${description || title}</p>
-                            <div class="rss-meta">
-                                <span>${pubDate}</span>
-                                <span>${category}</span>
-                            </div>
-                            <a href="${link}" target="_blank" rel="noreferrer">Open source alert</a>
-                        </article>
-                    `;
-                }).join('');
-
-                const scrollToItem = (direction) => {
-                    const firstCard = track.querySelector('.rss-item');
+                const scrollByCard = (direction) => {
+                    const firstCard = track.querySelector('.alert-card');
                     if (!firstCard) {
                         return;
                     }
@@ -886,8 +890,8 @@
 
                 prevButton.disabled = false;
                 nextButton.disabled = false;
-                prevButton.onclick = () => scrollToItem(-1);
-                nextButton.onclick = () => scrollToItem(1);
+                prevButton.onclick = () => scrollByCard(-1);
+                nextButton.onclick = () => scrollByCard(1);
             }
 
             async function fetchRssAlerts() {
@@ -898,7 +902,8 @@
                     }
 
                     const data = await response.json();
-                    renderRssFeed(data.items);
+                    alertState.ndmaItems = Array.isArray(data.items) ? data.items : [];
+                    renderAlertCarousel();
                 } catch (error) {
                     console.error('Error fetching RSS alerts:', error);
                 }
@@ -914,43 +919,14 @@
             }
 
             function renderWeatherAlert(alert) {
-                const container = document.getElementById('alert-container');
-
-                if (!container) {
-                    return;
-                }
-
                 const activeTone = getAlertToneClass(alert?.tone);
-                if (!activeTone) {
-                    container.innerHTML = '';
-                    return;
-                }
-
-                const title = escapeHtml(alert.title || 'Surat Weather Alert');
-                const level = escapeHtml(alert.level || 'Weather Alert');
-                const description = escapeHtml(alert.description || 'District-wise weather warning');
-                const summary = escapeHtml(alert.summary || alert.info || 'IMD has issued an update for Surat.');
-                const issuedDate = escapeHtml([alert.issuedDate, alert.issuedTime].filter(Boolean).join(' '));
-                const validUntil = escapeHtml(alert.validUntil || 'Until further notice');
-                const sourceUrl = escapeHtml(alert.sourceUrl || 'https://mausam.imd.gov.in/');
-
-                container.innerHTML = `
-                    <div class="card weather-alert-card ${activeTone}">
-                        <div class="alert-grid">
-                            <div class="alert-header">
-                                <h2 class="alert-title">${title}</h2>
-                                <span class="alert-badge">${level}</span>
-                            </div>
-                            <p class="alert-summary">${summary}</p>
-                            <div class="alert-meta">
-                                <div><strong>What it means</strong><span>${description}</span></div>
-                                <div><strong>Issued</strong><span>${issuedDate || 'Not available'}</span></div>
-                                <div><strong>Valid until</strong><span>${validUntil}</span></div>
-                                <div><strong>Source</strong><span><a href="${sourceUrl}" target="_blank" rel="noreferrer">IMD District Warnings</a></span></div>
-                            </div>
-                        </div>
-                    </div>
-                `;
+                alertState.imd = activeTone
+                    ? {
+                        ...alert,
+                        tone: alert.tone,
+                    }
+                    : null;
+                renderAlertCarousel();
             }
 
             async function fetchWeatherAlert() {
