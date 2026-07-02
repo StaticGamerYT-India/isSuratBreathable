@@ -405,12 +405,44 @@
             box-shadow: 0 18px 44px rgba(15, 23, 42, 0.22);
         }
 
+        .alert-card.alert-ndma.tone-red {
+            background: linear-gradient(135deg, #b71c1c, #d32f2f);
+            color: #fff;
+            border-color: #7f0000;
+        }
+
+        .alert-card.alert-ndma.tone-orange {
+            background: linear-gradient(135deg, #ef6c00, #fb8c00);
+            color: #fff;
+            border-color: #e65100;
+        }
+
+        .alert-card.alert-ndma.tone-yellow {
+            background: linear-gradient(135deg, #f9a825, #fdd835);
+            color: #1c1b1f;
+            border-color: #e6b800;
+        }
+
+        .alert-card.alert-ndma.tone-neutral {
+            background: linear-gradient(135deg, #0f172a, #334155);
+            color: #fff;
+            border-color: rgba(255, 255, 255, 0.08);
+        }
+
         .alert-card.alert-ndma::before {
             background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.14), transparent 55%);
         }
 
+        .alert-card.alert-ndma.tone-yellow::before {
+            background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.45), transparent 55%);
+        }
+
         .alert-card.alert-ndma .alert-badge {
             background: rgba(255, 255, 255, 0.12);
+        }
+
+        .alert-card.alert-ndma.tone-yellow .alert-badge {
+            background: rgba(28, 27, 31, 0.12);
         }
 
         .alert-card.alert-ndma .alert-summary,
@@ -418,9 +450,19 @@
             color: rgba(255, 255, 255, 0.9);
         }
 
+        .alert-card.alert-ndma.tone-yellow .alert-summary,
+        .alert-card.alert-ndma.tone-yellow .alert-meta span {
+            color: rgba(28, 27, 31, 0.9);
+        }
+
         .alert-card.alert-ndma .alert-meta strong,
         .alert-card.alert-ndma a {
             color: #fff;
+        }
+
+        .alert-card.alert-ndma.tone-yellow .alert-meta strong,
+        .alert-card.alert-ndma.tone-yellow a {
+            color: #1c1b1f;
         }
 
         .alert-empty {
@@ -1034,7 +1076,8 @@
 
                 const ndmaAlerts = Array.isArray(alertState.ndmaItems) ? alertState.ndmaItems : [];
                 const ndmaSourceUrl = escapeHtml(alertState.ndmaSource || 'https://sachet.ndma.gov.in/cap_public_website/rss/rss_gujarat.xml');
-                ndmaAlerts.forEach((ndma) => {
+                if (ndmaAlerts.length) {
+                    const ndma = ndmaAlerts[0];
                     const ndmaActiveFrom = escapeHtml(formatNdmaTime(ndma.effective_start_time) || ndma.effective_start_time || 'Not available');
                     const ndmaValidUntil = escapeHtml(formatNdmaTime(ndma.effective_end_time) || ndma.effective_end_time || 'Not available');
                     const ndmaSeverity = escapeHtml(ndma.severity || ndma.severity_level || 'Alert');
@@ -1043,9 +1086,10 @@
                     const ndmaLanguage = escapeHtml(ndma.actual_lang || 'en');
                     const ndmaMessage = escapeHtml(ndma.warning_message || ndma.area_description || 'NDMA has issued a Gujarat alert.');
                     const ndmaTitle = escapeHtml(ndma.area_description || ndma.disaster_type || 'Gujarat SDMA Alert');
+                    const ndmaTone = escapeHtml(ndma.tone || 'neutral');
 
                     cards.push(`
-                        <article class="card alert-card alert-ndma">
+                        <article class="card alert-card alert-ndma tone-${ndmaTone}">
                             <div class="alert-grid">
                                 <div class="alert-header">
                                     <h3 class="alert-title">${ndmaTitle}</h3>
@@ -1062,7 +1106,7 @@
                             </div>
                         </article>
                     `);
-                });
+                }
 
                 if (!cards.length) {
                     section.classList.add('is-hidden');
@@ -1093,7 +1137,8 @@
 
             async function fetchRssAlerts() {
                 try {
-                    const response = await fetch(`/api/ndma-alerts?ts=${Date.now()}`, {
+                    const referenceTime = Date.now();
+                    const response = await fetch(`/api/ndma-alerts?ts=${referenceTime}&now=${referenceTime}`, {
                         cache: 'no-store',
                     });
                     if (!response.ok) {

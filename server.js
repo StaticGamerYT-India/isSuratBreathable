@@ -147,6 +147,26 @@ function parseDateOrZero(value) {
   return Number.isNaN(date.getTime()) ? 0 : date.getTime();
 }
 
+function parseNdmaTimestamp(value) {
+  if (!value) {
+    return null;
+  }
+
+  const cleaned = String(value).trim();
+  const match = cleaned.match(/^(\w{3})\s+(\w{3})\s+(\d{1,2})\s+(\d{1,2}):(\d{2}):(\d{2})\s+(?:IST|UTC|GMT)\s+(\d{4})$/i);
+
+  if (!match) {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date.getTime();
+  }
+
+  const [, dayName, monthName, day, hour, minute, second, year] = match;
+  const monthIndex = new Date(`${monthName} 1, ${year}`).getMonth();
+  const parsed = new Date(Date.UTC(Number(year), monthIndex, Number(day), Number(hour), Number(minute), Number(second)));
+
+  return Number.isNaN(parsed.getTime()) ? null : parsed.getTime();
+}
+
 function normalizeText(value) {
   return String(value || '')
     .toLowerCase()
@@ -160,10 +180,59 @@ function isGujaratAlert(alert) {
   const combinedText = `${source} ${description} ${message}`;
   const issuedByGujarat =
     String(alert.sender_org_id || '').trim() === '20' ||
-    /gujarat\s*sdma|government of gujarat|govt of gujarat/.test(source);
-  const mentionsGujarat = /gujarat|ગુજરાત/.test(combinedText);
+    /gujarat\s*sdma|government of gujarat|govt of gujarat/.test(source) ||
+    /gujarat|ગુજરાત/.test(combinedText) ||
+    /surat/.test(combinedText);
 
-  return issuedByGujarat && mentionsGujarat;
+  return issuedByGujarat;
+}
+
+function getNdmaTone(alert) {
+  const severity = normalizeText(alert.severity || alert.severity_level || alert.alert_level || alert.type || alert.disaster_type);
+  const disasterType = normalizeText(alert.disaster_type || alert.type || alert.alert_type);
+
+  if (/red|critical|extreme|urgent|evacuation|warning/.test(severity) || /tsunami|earthquake|cyclone|flood/.test(disasterType)) {
+    return 'red';
+  }
+
+  if (/alert|orange|moderate|advisory|storm|thunderstorm|heat|landslide/.test(severity) || /heat|storm|landslide/.test(disasterType)) {
+    return 'orange';
+  }
+
+  if (/watch|yellow|inform|statement|minor/.test(severity)) {
+    return 'yellow';
+  }
+
+  return 'neutral';
+}
+
+function selectLatestNdmaAlert(alerts, referenceTime) {
+  if (!Array.isArray(alerts) || alerts.length === 0) {
+    return null;
+  }
+
+  const now = referenceTime ? new Date(referenceTime).getTime() : Date.now();
+  const candidates = alerts
+    .filter(Boolean)
+    .map(alert => ({
+      ...alert,
+      startTime: parseNdmaTimestamp(alert.effective_start_time),
+      endTime: parseNdmaTimestamp(alert.effective_end_time),
+    }))
+    .filter(alert => alert.startTime !== null)
+    .sort((left, right) => right.startTime - left.startTime);
+
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  const startedCandidates = candidates.filter(alert => alert.startTime <= now);
+  const latestAlert = startedCandidates[0] || candidates[0];
+
+  return {
+    ...latestAlert,
+    tone: getNdmaTone(latestAlert),
+  };
 }
 
 app.get('/api/weather-alert', async (req, res) => {
@@ -235,17 +304,16 @@ app.get('/api/ndma-alerts', async (req, res) => {
 
     const json = await response.json();
     const alerts = Array.isArray(json.alerts) ? json.alerts : [];
-    const matchedAlerts = alerts
-      .filter(isGujaratAlert)
-      .sort((left, right) => parseDateOrZero(right.effective_start_time) - parseDateOrZero(left.effective_start_time))
-      .slice(0, 6);
+    const matchedAlerts = alerts.filter(isGujaratAlert);
+    const referenceTime = req.query.now || Date.now();
+    const latestAlert = selectLatestNdmaAlert(matchedAlerts, referenceTime);
 
     res.json({
       sourceUrl: NDMA_SURAT_ALERTS_URL,
       channelTitle: 'Gujarat: CAP Disaster Alert Feeds',
-      currentItem: matchedAlerts[0] || null,
-      hasTodayAlert: matchedAlerts.length > 0,
-      items: matchedAlerts,
+      currentItem: latestAlert,
+      hasTodayAlert: Boolean(latestAlert),
+      items: latestAlert ? [latestAlert] : [],
     });
   } catch (error) {
     console.error(error);
