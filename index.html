@@ -744,8 +744,8 @@
         <section id="alerts-carousel" class="card alerts-carousel" aria-label="Weather and disaster alerts">
             <div class="alerts-head">
                 <div>
-                    <h2>Live Alerts for Surat</h2>
-                    <p>Swipe through IMD and NDMA cards.</p>
+                    <h2>Live Gujarat Alerts</h2>
+                    <p>Swipe through IMD and Gujarat SDMA cards.</p>
                 </div>
                 <div class="alerts-controls">
                     <button class="carousel-button" type="button" id="alerts-prev" aria-label="Previous alert">
@@ -777,8 +777,8 @@
             let aqiChart = null;
             const alertState = {
                 imd: null,
-                ndmaItem: null,
-                ndmaSource: 'https://sachet.ndma.gov.in/cap_public_website/FetchLocationWiseAlerts?lat=21.1702&long=72.8311&radius=20',
+                ndmaItems: [],
+                ndmaSource: 'https://sachet.ndma.gov.in/cap_public_website/FetchLocationWiseAlerts?lat=21.1702&long=72.8311&radius=250',
             };
 
             // --- THEME AND TOGGLE LOGIC ---
@@ -1017,10 +1017,10 @@
                         <article class="card alert-card alert-imd tone-${escapeHtml(imd.tone)}">
                             <div class="alert-grid">
                                 <div class="alert-header">
-                                    <h3 class="alert-title">${escapeHtml(imd.title || 'IMD Surat Alert')}</h3>
+                                    <h3 class="alert-title">${escapeHtml(imd.title || 'IMD Weather Alert')}</h3>
                                     <span class="alert-badge">${escapeHtml(imd.level || 'Weather Alert')}</span>
                                 </div>
-                                <p class="alert-summary">${escapeHtml(imd.summary || imd.info || 'IMD has issued an update for Surat.')}</p>
+                                <p class="alert-summary">${escapeHtml(imd.summary || imd.info || 'IMD has issued a weather update.')}</p>
                                 <div class="alert-meta">
                                     <div><strong>Meaning</strong><span>${escapeHtml(imd.description || 'District-wise weather warning')}</span></div>
                                     <div><strong>Issued</strong><span>${escapeHtml(formatImdDateTime(imd.issuedDate, imd.issuedTime)) || 'Not available'}</span></div>
@@ -1032,32 +1032,37 @@
                     `);
                 }
 
-                const ndma = alertState.ndmaItem;
+                const ndmaAlerts = Array.isArray(alertState.ndmaItems) ? alertState.ndmaItems : [];
                 const ndmaSourceUrl = escapeHtml(alertState.ndmaSource || 'https://sachet.ndma.gov.in/cap_public_website/rss/rss_gujarat.xml');
-                if (ndma) {
-                    const ndmaActiveFrom = escapeHtml(ndma.effective_start_time || 'Not available');
-                    const ndmaValidUntil = escapeHtml(ndma.effective_end_time || 'Not available');
+                ndmaAlerts.forEach((ndma) => {
+                    const ndmaActiveFrom = escapeHtml(formatNdmaTime(ndma.effective_start_time) || ndma.effective_start_time || 'Not available');
+                    const ndmaValidUntil = escapeHtml(formatNdmaTime(ndma.effective_end_time) || ndma.effective_end_time || 'Not available');
                     const ndmaSeverity = escapeHtml(ndma.severity || ndma.severity_level || 'Alert');
                     const ndmaType = escapeHtml(ndma.disaster_type || ndma.type || 'Weather');
-                    const ndmaMessage = escapeHtml(ndma.warning_message || ndma.area_description || 'NDMA has issued a location-wise alert for Surat.');
+                    const ndmaSource = escapeHtml(ndma.alert_source || 'NDMA');
+                    const ndmaLanguage = escapeHtml(ndma.actual_lang || 'en');
+                    const ndmaMessage = escapeHtml(ndma.warning_message || ndma.area_description || 'NDMA has issued a Gujarat alert.');
+                    const ndmaTitle = escapeHtml(ndma.area_description || ndma.disaster_type || 'Gujarat SDMA Alert');
+
                     cards.push(`
                         <article class="card alert-card alert-ndma">
                             <div class="alert-grid">
                                 <div class="alert-header">
-                                    <h3 class="alert-title">Surat NDMA Alert</h3>
+                                    <h3 class="alert-title">${ndmaTitle}</h3>
                                     <span class="alert-badge">${ndmaSeverity}</span>
                                 </div>
                                 <p class="alert-summary">${ndmaMessage}</p>
                                 <div class="alert-meta">
+                                    <div><strong>Issued by</strong><span>${ndmaSource}</span></div>
                                     <div><strong>Effective from</strong><span>${ndmaActiveFrom}</span></div>
                                     <div><strong>Valid until</strong><span>${ndmaValidUntil}</span></div>
-                                    <div><strong>Type</strong><span>${ndmaType}</span></div>
+                                    <div><strong>Type</strong><span>${ndmaType} · ${ndmaLanguage}</span></div>
                                     <div><strong>Source</strong><span><a href="${ndmaSourceUrl}" target="_blank" rel="noreferrer">NDMA</a></span></div>
                                 </div>
                             </div>
                         </article>
                     `);
-                }
+                });
 
                 if (!cards.length) {
                     section.classList.add('is-hidden');
@@ -1097,7 +1102,7 @@
 
                     const data = await response.json();
                     alertState.ndmaSource = data.sourceUrl || alertState.ndmaSource;
-                    alertState.ndmaItem = data.currentItem || data.items?.[0] || null;
+                    alertState.ndmaItems = Array.isArray(data.items) ? data.items : (data.currentItem ? [data.currentItem] : []);
                     renderAlertCarousel();
                 } catch (error) {
                     console.error('Error fetching RSS alerts:', error);

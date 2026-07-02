@@ -8,7 +8,7 @@ const NDMA_SURAT_ALERTS_URL = 'https://sachet.ndma.gov.in/cap_public_website/Fet
 const SURAT_ALERT_QUERY = {
   lat: '21.1702',
   long: '72.8311',
-  radius: '20',
+  radius: '250',
 };
 
 function buildHeaders(baseHeaders, cookie) {
@@ -147,6 +147,25 @@ function parseDateOrZero(value) {
   return Number.isNaN(date.getTime()) ? 0 : date.getTime();
 }
 
+function normalizeText(value) {
+  return String(value || '')
+    .toLowerCase()
+    .trim();
+}
+
+function isGujaratAlert(alert) {
+  const source = normalizeText(alert.alert_source);
+  const description = normalizeText(alert.area_description);
+  const message = normalizeText(alert.warning_message);
+  const combinedText = `${source} ${description} ${message}`;
+  const issuedByGujarat =
+    String(alert.sender_org_id || '').trim() === '20' ||
+    /gujarat\s*sdma|government of gujarat|govt of gujarat/.test(source);
+  const mentionsGujarat = /gujarat|ગુજરાત/.test(combinedText);
+
+  return issuedByGujarat && mentionsGujarat;
+}
+
 app.get('/api/weather-alert', async (req, res) => {
   try {
     setNoStoreHeaders(res);
@@ -216,16 +235,17 @@ app.get('/api/ndma-alerts', async (req, res) => {
 
     const json = await response.json();
     const alerts = Array.isArray(json.alerts) ? json.alerts : [];
-    const currentAlert = alerts
-      .filter(alert => /surat/i.test(`${alert.area_description || ''} ${alert.warning_message || ''}`))
-      .sort((left, right) => parseDateOrZero(right.effective_start_time) - parseDateOrZero(left.effective_start_time))[0] || null;
+    const matchedAlerts = alerts
+      .filter(isGujaratAlert)
+      .sort((left, right) => parseDateOrZero(right.effective_start_time) - parseDateOrZero(left.effective_start_time))
+      .slice(0, 6);
 
     res.json({
       sourceUrl: NDMA_SURAT_ALERTS_URL,
       channelTitle: 'Gujarat: CAP Disaster Alert Feeds',
-      currentItem: currentAlert,
-      hasTodayAlert: Boolean(currentAlert),
-      items: currentAlert ? [currentAlert] : [],
+      currentItem: matchedAlerts[0] || null,
+      hasTodayAlert: matchedAlerts.length > 0,
+      items: matchedAlerts,
     });
   } catch (error) {
     console.error(error);
