@@ -1076,8 +1076,7 @@
 
                 const ndmaAlerts = Array.isArray(alertState.ndmaItems) ? alertState.ndmaItems : [];
                 const ndmaSourceUrl = escapeHtml(alertState.ndmaSource || 'https://sachet.ndma.gov.in/cap_public_website/rss/rss_gujarat.xml');
-                if (ndmaAlerts.length) {
-                    const ndma = ndmaAlerts[0];
+                ndmaAlerts.forEach((ndma) => {
                     const ndmaActiveFrom = escapeHtml(formatNdmaTime(ndma.effective_start_time) || ndma.effective_start_time || 'Not available');
                     const ndmaValidUntil = escapeHtml(formatNdmaTime(ndma.effective_end_time) || ndma.effective_end_time || 'Not available');
                     const ndmaSeverity = escapeHtml(ndma.severity || ndma.severity_level || 'Alert');
@@ -1106,7 +1105,7 @@
                             </div>
                         </article>
                     `);
-                }
+                });
 
                 if (!cards.length) {
                     section.classList.add('is-hidden');
