@@ -173,16 +173,34 @@ function normalizeText(value) {
     .trim();
 }
 
+function toIstDateKey(timestamp) {
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date);
+}
+
 function isGujaratAlert(alert) {
   const source = normalizeText(alert.alert_source);
   const description = normalizeText(alert.area_description);
   const message = normalizeText(alert.warning_message);
   const combinedText = `${source} ${description} ${message}`;
+  const containsGujarati = /[\u0900-\u097F]/.test(combinedText);
+  const mentionsSurat = /surat|સુરત/.test(combinedText);
+  const mentionsGujarat = /gujarat|ગુજરાત/.test(combinedText);
   const issuedByGujarat =
     String(alert.sender_org_id || '').trim() === '20' ||
     /gujarat\s*sdma|government of gujarat|govt of gujarat/.test(source) ||
-    /gujarat|ગુજરાત/.test(combinedText) ||
-    /surat/.test(combinedText);
+    mentionsGujarat ||
+    mentionsSurat ||
+    containsGujarati;
 
   return issuedByGujarat;
 }
@@ -190,8 +208,9 @@ function isGujaratAlert(alert) {
 function getNdmaTone(alert) {
   const severity = normalizeText(alert.severity || alert.severity_level || alert.alert_level || alert.type || alert.disaster_type);
   const disasterType = normalizeText(alert.disaster_type || alert.type || alert.alert_type);
+  const message = normalizeText(alert.warning_message || alert.area_description || alert.alert_source);
 
-  if (/red|critical|extreme|urgent|evacuation|warning/.test(severity) || /tsunami|earthquake|cyclone|flood/.test(disasterType)) {
+  if (/red|critical|extreme|urgent|evacuation|severe/.test(severity) || /red|critical|extreme|urgent|evacuation|severe/.test(message) || /tsunami|earthquake|cyclone|flood/.test(disasterType)) {
     return 'red';
   }
 
@@ -212,15 +231,38 @@ function selectLatestNdmaAlert(alerts, referenceTime) {
   }
 
   const now = referenceTime ? new Date(referenceTime).getTime() : Date.now();
-  const candidates = alerts
+  const currentDayCandidates = alerts
     .filter(Boolean)
     .map(alert => ({
       ...alert,
       startTime: parseNdmaTimestamp(alert.effective_start_time),
       endTime: parseNdmaTimestamp(alert.effective_end_time),
+      relevanceScore: /surat|સુરત/.test(`${normalizeText(alert.alert_source)} ${normalizeText(alert.area_description)} ${normalizeText(alert.warning_message)}`) ? 2 : 0,
     }))
     .filter(alert => alert.startTime !== null)
-    .sort((left, right) => right.startTime - left.startTime);
+    .filter(alert => toIstDateKey(alert.startTime) === toIstDateKey(now))
+    .sort((left, right) => {
+      if (right.relevanceScore !== left.relevanceScore) {
+        return right.relevanceScore - left.relevanceScore;
+      }
+      return right.startTime - left.startTime;
+    });
+
+  const candidates = currentDayCandidates.length > 0 ? currentDayCandidates : alerts
+    .filter(Boolean)
+    .map(alert => ({
+      ...alert,
+      startTime: parseNdmaTimestamp(alert.effective_start_time),
+      endTime: parseNdmaTimestamp(alert.effective_end_time),
+      relevanceScore: /surat|સુરત/.test(`${normalizeText(alert.alert_source)} ${normalizeText(alert.area_description)} ${normalizeText(alert.warning_message)}`) ? 2 : 0,
+    }))
+    .filter(alert => alert.startTime !== null)
+    .sort((left, right) => {
+      if (right.relevanceScore !== left.relevanceScore) {
+        return right.relevanceScore - left.relevanceScore;
+      }
+      return right.startTime - left.startTime;
+    });
 
   if (candidates.length === 0) {
     return null;
