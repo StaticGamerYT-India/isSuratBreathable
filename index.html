@@ -1009,26 +1009,93 @@
                     .replace(/'/g, '&#39;');
             }
 
-            function formatNdmaTime(value) {
+            function formatAlertTimestamp(value) {
                 if (!value) {
                     return '';
                 }
 
-                const date = new Date(value);
-                if (Number.isNaN(date.getTime())) {
-                    return String(value);
+                const numericValue = typeof value === 'number' ? value : Number(value);
+                if (Number.isFinite(numericValue) && numericValue > 0) {
+                    const date = new Date(numericValue);
+                    return date.toLocaleString('en-IN', {
+                        timeZone: 'Asia/Kolkata',
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: false,
+                        timeZoneName: 'short',
+                    });
                 }
 
-                return date.toLocaleString('en-IN', {
-                    timeZone: 'Asia/Kolkata',
-                    day: '2-digit',
-                    month: 'short',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hour12: true,
-                    timeZoneName: 'short',
-                });
+                const directDate = new Date(value);
+                if (!Number.isNaN(directDate.getTime())) {
+                    return directDate.toLocaleString('en-IN', {
+                        timeZone: 'Asia/Kolkata',
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: false,
+                        timeZoneName: 'short',
+                    });
+                }
+
+                const customMatch = String(value).trim().match(/^(\w{3})\s+(\w{3})\s+(\d{1,2})\s+(\d{1,2}):(\d{2}):(\d{2})\s+(?:IST|UTC|GMT)\s+(\d{4})$/i);
+                if (customMatch) {
+                    const [, , monthName, day, hour, minute, second, year] = customMatch;
+                    const monthIndex = new Date(`${monthName} 1, ${year}`).getMonth();
+                    const parsed = new Date(Date.UTC(Number(year), monthIndex, Number(day), Number(hour), Number(minute), Number(second)));
+                    return parsed.toLocaleString('en-IN', {
+                        timeZone: 'Asia/Kolkata',
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: false,
+                        timeZoneName: 'short',
+                    });
+                }
+
+                return String(value);
+            }
+
+            function parseImdDateTime(dateValue, timeValue) {
+                if (!dateValue) {
+                    return null;
+                }
+
+                const slashMatch = String(dateValue).trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+                if (slashMatch) {
+                    const [, day, month, year] = slashMatch;
+                    const parsedDate = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+                    if (!Number.isNaN(parsedDate.getTime())) {
+                        const hrsMatch = String(timeValue || '').trim().match(/^(\d{3,4})\s*Hrs$/i);
+                        if (hrsMatch) {
+                            const padded = hrsMatch[1].padStart(4, '0');
+                            const hours = Number(padded.slice(0, 2));
+                            const minutes = Number(padded.slice(2, 4));
+                            parsedDate.setUTCHours(hours, minutes, 0, 0);
+                            return parsedDate;
+                        }
+
+                        const timeMatch = String(timeValue || '').trim().match(/^(\d{1,2}):(\d{2})/);
+                        if (timeMatch) {
+                            const hours = Number(timeMatch[1]);
+                            const minutes = Number(timeMatch[2]);
+                            parsedDate.setUTCHours(hours, minutes, 0, 0);
+                            return parsedDate;
+                        }
+
+                        return parsedDate;
+                    }
+                }
+
+                const directDate = new Date(dateValue);
+                return Number.isNaN(directDate.getTime()) ? null : directDate;
             }
 
             function formatImdDate(value) {
@@ -1081,6 +1148,11 @@
             }
 
             function formatImdDateTime(dateValue, timeValue) {
+                const parsedDate = parseImdDateTime(dateValue, timeValue);
+                if (parsedDate) {
+                    return formatAlertTimestamp(parsedDate);
+                }
+
                 const formattedDate = formatImdDate(dateValue);
                 const formattedTime = formatImdTime(timeValue);
 
@@ -1125,11 +1197,13 @@
                     `);
                 }
 
-                const ndmaAlerts = Array.isArray(alertState.ndmaItems) ? alertState.ndmaItems : [];
+                const ndmaAlerts = Array.isArray(alertState.ndmaItems)
+                    ? [...alertState.ndmaItems].sort((left, right) => (Number(right.sortTime || right.startTime || right.endTime || 0) || 0) - (Number(left.sortTime || left.startTime || left.endTime || 0) || 0))
+                    : [];
                 const ndmaSourceUrl = escapeHtml(alertState.ndmaSource || 'https://sachet.ndma.gov.in/cap_public_website/rss/rss_gujarat.xml');
                 ndmaAlerts.forEach((ndma) => {
-                    const ndmaActiveFrom = escapeHtml(formatNdmaTime(ndma.effective_start_time) || ndma.effective_start_time || 'Not available');
-                    const ndmaValidUntil = escapeHtml(formatNdmaTime(ndma.effective_end_time) || ndma.effective_end_time || 'Not available');
+                    const ndmaActiveFrom = escapeHtml(formatAlertTimestamp(ndma.startTime || ndma.effective_start_time) || ndma.effective_start_time || 'Not available');
+                    const ndmaValidUntil = escapeHtml(formatAlertTimestamp(ndma.endTime || ndma.effective_end_time) || ndma.effective_end_time || 'Not available');
                     const ndmaSeverity = escapeHtml(ndma.severity || ndma.severity_level || 'Alert');
                     const ndmaType = escapeHtml(ndma.disaster_type || ndma.type || 'Weather');
                     const ndmaSource = escapeHtml(ndma.alert_source || 'NDMA');

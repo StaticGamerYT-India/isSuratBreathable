@@ -246,12 +246,13 @@ function getCurrentDayNdmaAlerts(alerts, referenceTime) {
       ...alert,
       startTime: parseNdmaTimestamp(alert.effective_start_time || alert.published || alert.pubDate),
       endTime: parseNdmaTimestamp(alert.effective_end_time || alert.published || alert.pubDate),
+      sortTime: parseNdmaTimestamp(alert.effective_start_time || alert.published || alert.pubDate) || parseNdmaTimestamp(alert.effective_end_time || alert.published || alert.pubDate),
       tone: getNdmaTone(alert),
     }))
     .filter(alert => alert.startTime !== null)
     .filter(alert => toIstDateKey(alert.startTime) === toIstDateKey(now))
     .filter(alert => alert.startTime <= now)
-    .sort((left, right) => right.startTime - left.startTime)
+    .sort((left, right) => (right.sortTime || right.startTime || right.endTime || 0) - (left.sortTime || left.startTime || left.endTime || 0))
     .filter(alert => {
       const text = `${alert.warning_message || ''} ${alert.area_description || ''} ${alert.alert_source || ''}`.toLowerCase();
       return text.includes('surat') || text.includes('gujarat') || text.includes('daman') || text.includes('valsad') || text.includes('navsari') || text.includes('bharuch');
