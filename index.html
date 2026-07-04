@@ -1022,10 +1022,9 @@
                         day: '2-digit',
                         month: 'short',
                         year: 'numeric',
-                        hour: '2-digit',
+                        hour: 'numeric',
                         minute: '2-digit',
-                        hour12: false,
-                        timeZoneName: 'short',
+                        hour12: true,
                     });
                 }
 
@@ -1036,10 +1035,9 @@
                         day: '2-digit',
                         month: 'short',
                         year: 'numeric',
-                        hour: '2-digit',
+                        hour: 'numeric',
                         minute: '2-digit',
-                        hour12: false,
-                        timeZoneName: 'short',
+                        hour12: true,
                     });
                 }
 
@@ -1053,10 +1051,9 @@
                         day: '2-digit',
                         month: 'short',
                         year: 'numeric',
-                        hour: '2-digit',
+                        hour: 'numeric',
                         minute: '2-digit',
-                        hour12: false,
-                        timeZoneName: 'short',
+                        hour12: true,
                     });
                 }
 
@@ -1202,8 +1199,13 @@
                     : [];
                 const ndmaSourceUrl = escapeHtml(alertState.ndmaSource || 'https://sachet.ndma.gov.in/cap_public_website/rss/rss_gujarat.xml');
                 ndmaAlerts.forEach((ndma) => {
-                    const ndmaActiveFrom = escapeHtml(formatAlertTimestamp(ndma.startTime || ndma.effective_start_time) || ndma.effective_start_time || 'Not available');
-                    const ndmaValidUntil = escapeHtml(formatAlertTimestamp(ndma.endTime || ndma.effective_end_time) || ndma.effective_end_time || 'Not available');
+                    const ndmaStartValue = ndma.startTime || ndma.effective_start_time;
+                    const ndmaEndValue = ndma.endTime || ndma.effective_end_time;
+                    const ndmaActiveFrom = escapeHtml(formatAlertTimestamp(ndmaStartValue) || 'Not available');
+                    const ndmaExpiryValue = ndmaEndValue && Number(ndmaEndValue) > 0 && Number(ndmaEndValue) !== Number(ndmaStartValue)
+                        ? formatAlertTimestamp(ndmaEndValue)
+                        : '';
+                    const ndmaValidUntil = escapeHtml(ndmaExpiryValue || 'Until further notice');
                     const ndmaSeverity = escapeHtml(ndma.severity || ndma.severity_level || 'Alert');
                     const ndmaType = escapeHtml(ndma.disaster_type || ndma.type || 'Weather');
                     const ndmaSource = escapeHtml(ndma.alert_source || 'NDMA');
