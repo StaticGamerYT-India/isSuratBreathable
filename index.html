@@ -172,12 +172,12 @@
 
         .alerts-carousel {
             display: grid;
-            gap: 16px;
-            padding: clamp(18px, 2vw, 28px);
+            gap: 14px;
+            padding: clamp(16px, 2vw, 24px);
             position: relative;
             overflow: hidden;
             border: 1px solid color-mix(in srgb, var(--surface-variant) 78%, transparent);
-            max-width: 920px;
+            max-width: 1180px;
             margin-inline: auto;
         }
 
@@ -253,8 +253,8 @@
         .alerts-track {
             display: grid;
             grid-auto-flow: column;
-            grid-auto-columns: minmax(100%, 1fr);
-            gap: 16px;
+            grid-auto-columns: minmax(300px, 410px);
+            gap: 14px;
             overflow-x: auto;
             scroll-snap-type: x mandatory;
             scroll-padding-inline: 4px;
@@ -277,10 +277,10 @@
             scroll-snap-align: start;
             position: relative;
             overflow: hidden;
-            min-height: 220px;
-            padding: clamp(18px, 2vw, 24px);
-            border-radius: 22px;
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+            min-height: 190px;
+            padding: clamp(14px, 1.8vw, 18px);
+            border-radius: 18px;
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
         }
 
         body.dark-mode .alert-card {
@@ -298,7 +298,8 @@
         .alert-card .alert-grid {
             position: relative;
             display: grid;
-            gap: 12px;
+            gap: 10px;
+            height: 100%;
         }
 
         .alert-card .alert-header {
@@ -311,8 +312,8 @@
 
         .alert-card .alert-title {
             margin: 0;
-            font-size: clamp(1rem, 1.4vw, 1.18rem);
-            line-height: 1.28;
+            font-size: clamp(0.95rem, 1.25vw, 1.08rem);
+            line-height: 1.25;
         }
 
         .alert-card .alert-badge {
@@ -331,28 +332,43 @@
 
         .alert-card .alert-summary {
             margin: 0;
-            font-size: 0.97rem;
-            line-height: 1.55;
+            font-size: 0.94rem;
+            line-height: 1.45;
             overflow-wrap: anywhere;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
         }
 
         .alert-card .alert-meta {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-            gap: 12px 14px;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+            margin-top: 2px;
+        }
+
+        .alert-card .alert-meta > div {
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 10px;
+            padding: 8px 10px;
+            min-height: 48px;
         }
 
         .alert-card .alert-meta span {
             display: block;
             opacity: 0.92;
-            font-size: 0.86rem;
-            line-height: 1.4;
+            font-size: 0.8rem;
+            line-height: 1.35;
         }
 
         .alert-card .alert-meta strong {
             display: block;
-            font-size: 0.9rem;
+            font-size: 0.78rem;
             margin-bottom: 2px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            opacity: 0.95;
         }
 
         .alert-card a {
@@ -737,7 +753,7 @@
             }
 
             .alerts-track {
-                grid-auto-columns: 100%;
+                grid-auto-columns: minmax(100%, 1fr);
                 gap: 12px;
             }
 
@@ -771,6 +787,10 @@
             .alert-card .alert-meta {
                 grid-template-columns: 1fr;
                 gap: 8px;
+            }
+
+            .alert-card .alert-meta > div {
+                min-height: auto;
             }
 
             .alert-card .alert-meta span {

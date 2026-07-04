@@ -155,21 +155,28 @@ function parseNdmaTimestamp(value) {
   const cleaned = String(value).trim();
   const match = cleaned.match(/^(\w{3})\s+(\w{3})\s+(\d{1,2})\s+(\d{1,2}):(\d{2}):(\d{2})\s+(?:IST|UTC|GMT)\s+(\d{4})$/i);
 
-  if (!match) {
-    const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? null : date.getTime();
+  if (match) {
+    const [, , monthName, day, hour, minute, second, year] = match;
+    const monthIndex = new Date(`${monthName} 1, ${year}`).getMonth();
+    const parsed = new Date(Date.UTC(Number(year), monthIndex, Number(day), Number(hour), Number(minute), Number(second)));
+    return /ist/i.test(cleaned) ? parsed.getTime() - (5 * 60 + 30) * 60 * 1000 : parsed.getTime();
   }
 
-  const [, , monthName, day, hour, minute, second, year] = match;
-  const monthIndex = new Date(`${monthName} 1, ${year}`).getMonth();
-  const parsed = new Date(Date.UTC(Number(year), monthIndex, Number(day), Number(hour), Number(minute), Number(second)));
-  const utcTimestamp = parsed.getTime();
-
-  if (/ist/i.test(cleaned)) {
-    return utcTimestamp - (5 * 60 + 30) * 60 * 1000;
+  const directDate = new Date(cleaned);
+  if (!Number.isNaN(directDate.getTime())) {
+    return directDate.getTime();
   }
 
-  return utcTimestamp;
+  const slashMatch = cleaned.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})$/);
+  if (slashMatch) {
+    const [, day, month, year, hour, minute] = slashMatch;
+    const parsed = new Date(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${hour.padStart(2, '0')}:${minute.padStart(2, '0')}:00+05:30`);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.getTime();
+    }
+  }
+
+  return null;
 }
 
 function normalizeText(value) {
@@ -243,8 +250,8 @@ function getCurrentDayNdmaAlerts(alerts, referenceTime) {
     }))
     .filter(alert => alert.startTime !== null)
     .filter(alert => toIstDateKey(alert.startTime) === toIstDateKey(now))
-    .sort((left, right) => left.startTime - right.startTime)
     .filter(alert => alert.startTime <= now)
+    .sort((left, right) => right.startTime - left.startTime)
     .filter(alert => {
       const text = `${alert.warning_message || ''} ${alert.area_description || ''} ${alert.alert_source || ''}`.toLowerCase();
       return text.includes('surat') || text.includes('gujarat') || text.includes('daman') || text.includes('valsad') || text.includes('navsari') || text.includes('bharuch');
@@ -404,7 +411,7 @@ app.get('/api/ndma-alerts', async (req, res) => {
     const referenceTime = Number(req.query.now || Date.now());
     const combinedAlerts = [...locationAlerts, ...rssAlerts];
     const currentDayAlerts = getCurrentDayNdmaAlerts(combinedAlerts, referenceTime);
-    const latestAlert = currentDayAlerts[currentDayAlerts.length - 1] || null;
+    const latestAlert = currentDayAlerts[0] || null;
 
     res.json({
       sourceUrl: NDMA_SURAT_ALERTS_URL,
