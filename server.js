@@ -189,6 +189,15 @@ function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
+function coerceNumber(value, fallback = 0) {
+  if (value === undefined || value === null || value === '') {
+    return fallback;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
 function parseHistoryRainfall(value) {
   if (Array.isArray(value)) {
     return value
@@ -640,22 +649,22 @@ app.get('/api/rain-probability', async (req, res) => {
 
     const forecast = await fetchOpenMeteoForecast();
     const historyRainfall = parseHistoryRainfall(req.query.historyRainfall);
-    const historyTrend = Number(req.query.historyTrend || (historyRainfall.length >= 2
+    const historyTrend = coerceNumber(req.query.historyTrend, historyRainfall.length >= 2
       ? historyRainfall[historyRainfall.length - 1] - historyRainfall[0]
-      : 0));
+      : 0);
 
     const result = calculateRainProbability({
-      temperature: Number(req.query.temperature ?? forecast.temperature),
-      humidity: Number(req.query.humidity ?? forecast.humidity),
-      pressure: Number(req.query.pressure ?? forecast.pressure),
-      recentRainfall: Number(req.query.recentRainfall ?? forecast.currentPrecipitation),
-      windSpeed: Number(req.query.windSpeed ?? forecast.windSpeed),
+      temperature: coerceNumber(req.query.temperature, forecast.temperature),
+      humidity: coerceNumber(req.query.humidity, forecast.humidity),
+      pressure: coerceNumber(req.query.pressure, forecast.pressure),
+      recentRainfall: coerceNumber(req.query.recentRainfall, forecast.currentPrecipitation),
+      windSpeed: coerceNumber(req.query.windSpeed, forecast.windSpeed),
       alertTone: String(req.query.alertTone || 'neutral'),
       historyTrend,
       historyRainfall,
-      forecastProbability: Number(req.query.forecastProbability ?? forecast.forecastProbability),
-      currentPrecipitation: Number(req.query.currentPrecipitation ?? forecast.currentPrecipitation),
-      weatherCode: Number(req.query.weatherCode ?? forecast.weatherCode),
+      forecastProbability: coerceNumber(req.query.forecastProbability, forecast.forecastProbability),
+      currentPrecipitation: coerceNumber(req.query.currentPrecipitation, forecast.currentPrecipitation),
+      weatherCode: coerceNumber(req.query.weatherCode, forecast.weatherCode),
     });
 
     res.json(result);
