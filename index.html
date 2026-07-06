@@ -1414,111 +1414,30 @@
                         return { summary: "Saas loge to lungs me paani bhar jayega.", color: "#64b5f6" };
                     }
 
-                    function getRainProbability({ temperature, humidity, pressure, recentRainfall, windSpeed, alertTone, historyTrend, historyRainfall }) {
-                        const temp = Number(temperature) || 0;
-                        const hum = Number(humidity) || 0;
-                        const pres = Number(pressure) || 0;
-                        const recentRain = Number(recentRainfall) || 0;
-                        const wind = Number(windSpeed) || 0;
-                        const trend = Number(historyTrend) || 0;
-                        const recentHistory = Array.isArray(historyRainfall) ? historyRainfall : [];
-                        const latestHistory = recentHistory.length ? recentHistory[recentHistory.length - 1] : 0;
-                        const previousHistory = recentHistory.length > 1 ? recentHistory[recentHistory.length - 2] : 0;
-                        const historyDelta = latestHistory - previousHistory;
-                        const alertBias = alertTone === 'red' ? 0.16 : alertTone === 'orange' ? 0.1 : alertTone === 'yellow' ? 0.06 : 0;
+                    async function getRainProbabilityFromServer(payload) {
+                        const params = new URLSearchParams({
+                            temperature: String(payload.temperature ?? ''),
+                            humidity: String(payload.humidity ?? ''),
+                            pressure: String(payload.pressure ?? ''),
+                            recentRainfall: String(payload.recentRainfall ?? ''),
+                            windSpeed: String(payload.windSpeed ?? ''),
+                            alertTone: String(payload.alertTone ?? 'neutral'),
+                            historyTrend: String(payload.historyTrend ?? 0),
+                            historyRainfall: JSON.stringify(payload.historyRainfall ?? []),
+                            forecastProbability: String(payload.forecastProbability ?? ''),
+                            currentPrecipitation: String(payload.currentPrecipitation ?? ''),
+                            weatherCode: String(payload.weatherCode ?? ''),
+                        });
 
-                        let score = 0;
-                        let reasons = [];
+                        const response = await fetch(`/api/rain-probability?${params.toString()}`, {
+                            cache: 'no-store',
+                        });
 
-                        if (temp >= 22 && temp <= 32) {
-                            score += 0.22;
-                            reasons.push('temperature is in the rain-friendly range');
-                        } else if (temp > 32) {
-                            score += 0.08;
-                            reasons.push('heat is still moderate enough for convective rain');
-                        } else {
-                            reasons.push('temperature is not strongly supporting rain');
+                        if (!response.ok) {
+                            throw new Error(`Rain prediction request failed with status ${response.status}`);
                         }
 
-                        if (hum >= 80) {
-                            score += 0.24;
-                            reasons.push('humidity is very high');
-                        } else if (hum >= 65) {
-                            score += 0.16;
-                            reasons.push('humidity is elevated');
-                        } else if (hum >= 50) {
-                            score += 0.08;
-                            reasons.push('humidity is moderate');
-                        } else {
-                            reasons.push('humidity is low');
-                        }
-
-                        if (pres > 0 && pres < 1005) {
-                            score += 0.16;
-                            reasons.push('pressure is falling');
-                        } else if (pres > 1008) {
-                            score -= 0.06;
-                            reasons.push('pressure is high');
-                        }
-
-                        if (recentRain > 0) {
-                            score += 0.12;
-                            reasons.push('there is already rain activity');
-                        }
-
-                        if (wind >= 10 && wind <= 25) {
-                            score += 0.08;
-                            reasons.push('wind is supportive for showers');
-                        } else if (wind > 25) {
-                            score -= 0.04;
-                            reasons.push('wind is too strong');
-                        }
-
-                        if (trend > 0) {
-                            score += Math.min(0.16, trend / 20);
-                            reasons.push('recent rainfall trend is rising');
-                        } else if (trend < 0) {
-                            score -= 0.05;
-                            reasons.push('recent rainfall trend is fading');
-                        }
-
-                        if (historyDelta > 0) {
-                            score += 0.05;
-                            reasons.push('the last few readings are getting wetter');
-                        } else if (historyDelta < 0) {
-                            score -= 0.03;
-                            reasons.push('the last few readings are drying out');
-                        }
-
-                        score += alertBias;
-
-                        const probability = Math.max(5, Math.min(95, Math.round((score / 1.14) * 100)));
-
-                        let label = 'Low chance';
-                        let tone = '#2e7d32';
-                        if (probability >= 78) {
-                            label = 'Very likely';
-                            tone = '#d32f2f';
-                        } else if (probability >= 58) {
-                            label = 'Likely';
-                            tone = '#fb8c00';
-                        } else if (probability >= 30) {
-                            label = 'Possible';
-                            tone = '#f9a825';
-                        }
-
-                        let explanation = 'The current setup is still mostly dry, with only a small signal for rain.';
-                        if (probability >= 78) {
-                            explanation = `Rain looks strongly supported right now because ${reasons.slice(0, 3).join(', ')}.`;
-                        } else if (probability >= 58) {
-                            explanation = `The atmosphere looks favorable for showers because ${reasons.slice(0, 3).join(', ')}.`;
-                        } else if (probability >= 30) {
-                            explanation = `There is a moderate rain signal, driven mainly by ${reasons.slice(0, 3).join(', ')}.`;
-                        } else {
-                            explanation = `Rain is not strongly supported right now; the main signals are ${reasons.slice(0, 3).join(', ')}.`;
-                        }
-
-                        return { probability, label, tone, explanation };
+                        return response.json();
                     }
 
                     const aqiDetails = getAqiDetails(finalAqi);
@@ -1538,7 +1457,7 @@
                     const rainTrend = lastRainValues.length >= 2
                         ? lastRainValues[lastRainValues.length - 1] - lastRainValues[0]
                         : 0;
-                    const rainPrediction = getRainProbability({
+                    const rainPrediction = await getRainProbabilityFromServer({
                         temperature: ambientTemp,
                         humidity: relativeHumidity,
                         pressure: atmosphericPressure,
@@ -1610,7 +1529,7 @@
                         <div class="rain-predictor">
                             <h3>Rain Probability Predictor</h3>
                             <div class="probability-pill" style="background:${rainPrediction.tone};">${rainPrediction.probability}% · ${rainPrediction.label}</div>
-                            <div class="probability-meta">${escapeHtml(rainPrediction.explanation)} This uses live humidity, temperature, pressure, recent rainfall trend, wind, and the latest alert context.</div>
+                            <div class="probability-meta">${escapeHtml(rainPrediction.explanation)} This uses live humidity, temperature, pressure, recent rainfall trend, wind, weather alerts, and Open-Meteo forecast support.</div>
                         </div>
                         <div class="details-grid">
                             <div class="pollutants">

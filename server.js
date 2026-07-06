@@ -185,6 +185,202 @@ function normalizeText(value) {
     .trim();
 }
 
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function parseHistoryRainfall(value) {
+  if (Array.isArray(value)) {
+    return value
+      .map(item => Number(item))
+      .filter(item => Number.isFinite(item));
+  }
+
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed)
+        ? parsed.map(item => Number(item)).filter(item => Number.isFinite(item))
+        : [];
+    } catch (error) {
+      return [];
+    }
+  }
+
+  return [];
+}
+
+function calculateRainProbability({
+  temperature,
+  humidity,
+  pressure,
+  recentRainfall,
+  windSpeed,
+  alertTone,
+  historyTrend,
+  historyRainfall,
+  forecastProbability,
+  currentPrecipitation,
+  weatherCode,
+}) {
+  const temp = Number(temperature) || 0;
+  const hum = Number(humidity) || 0;
+  const pres = Number(pressure) || 0;
+  const recentRain = Number(recentRainfall) || 0;
+  const wind = Number(windSpeed) || 0;
+  const trend = Number(historyTrend) || 0;
+  const recentHistory = Array.isArray(historyRainfall) ? historyRainfall : [];
+  const latestHistory = recentHistory.length ? recentHistory[recentHistory.length - 1] : 0;
+  const previousHistory = recentHistory.length > 1 ? recentHistory[recentHistory.length - 2] : 0;
+  const historyDelta = latestHistory - previousHistory;
+  const forecast = Number(forecastProbability) || 0;
+  const currentPrecip = Number(currentPrecipitation) || 0;
+  const code = Number(weatherCode) || 0;
+  const alertBias = alertTone === 'red' ? 0.16 : alertTone === 'orange' ? 0.12 : alertTone === 'yellow' ? 0.08 : 0;
+
+  let score = 0;
+
+  if (temp >= 22 && temp <= 32) {
+    score += 0.30;
+  } else if (temp >= 18 && temp < 22) {
+    score += 0.14;
+  } else if (temp > 32) {
+    score += 0.04;
+  } else {
+    score -= 0.08;
+  }
+
+  if (hum >= 85) {
+    score += 0.28;
+  } else if (hum >= 70) {
+    score += 0.20;
+  } else if (hum >= 55) {
+    score += 0.10;
+  } else {
+    score -= 0.06;
+  }
+
+  if (pres > 0 && pres < 1004) {
+    score += 0.18;
+  } else if (pres > 1008) {
+    score -= 0.08;
+  }
+
+  if (recentRain >= 1.5) {
+    score += 0.18;
+  } else if (recentRain > 0) {
+    score += 0.10;
+  }
+
+  if (wind >= 8 && wind <= 20) {
+    score += 0.10;
+  } else if (wind > 24) {
+    score -= 0.06;
+  }
+
+  if (trend > 0.2) {
+    score += Math.min(0.16, trend / 2.5);
+  } else if (trend < -0.2) {
+    score -= 0.05;
+  }
+
+  if (historyDelta > 0.2) {
+    score += 0.05;
+  } else if (historyDelta < -0.2) {
+    score -= 0.04;
+  }
+
+  score += alertBias;
+  score += (forecast / 100) * 0.62;
+  score += currentPrecip > 0.5 ? 0.12 : currentPrecip > 0 ? 0.04 : 0;
+
+  if ([61, 63, 65, 80, 81, 82].includes(code)) {
+    score += 0.16;
+  } else if (code === 95 || code === 96 || code === 99) {
+    score += 0.22;
+  } else if ([0, 1].includes(code)) {
+    score -= 0.08;
+  }
+
+  const probability = clamp(Math.round((score / 1.82) * 100), 3, 97);
+
+  let label = 'Low chance';
+  let tone = '#2e7d32';
+  if (probability >= 80) {
+    label = 'Very likely';
+    tone = '#d32f2f';
+  } else if (probability >= 60) {
+    label = 'Likely';
+    tone = '#fb8c00';
+  } else if (probability >= 35) {
+    label = 'Possible';
+    tone = '#f9a825';
+  }
+
+  let explanation = 'The current setup is still mostly dry, with only a weak signal for rain.';
+  if (probability >= 80) {
+    explanation = 'Rain is strongly supported by the live forecast, high humidity, and ongoing rainfall signals.';
+  } else if (probability >= 60) {
+    explanation = 'The atmosphere looks favorable for showers, with moisture and forecast support lining up.';
+  } else if (probability >= 35) {
+    explanation = 'There is a moderate rain signal from the current conditions and the recent trend.';
+  } else {
+    explanation = 'Rain is not strongly supported right now; the sky and the recent trend are still mostly dry.';
+  }
+
+  return { probability, label, tone, explanation };
+}
+
+async function fetchOpenMeteoForecast() {
+  try {
+    const url = new URL('https://api.open-meteo.com/v1/forecast');
+    url.searchParams.set('latitude', '21.1702');
+    url.searchParams.set('longitude', '72.8311');
+    url.searchParams.set('current', 'temperature_2m,relative_humidity_2m,pressure_msl,wind_speed_10m,precipitation,weather_code');
+    url.searchParams.set('hourly', 'precipitation_probability');
+    url.searchParams.set('timezone', 'Asia/Kolkata');
+    url.searchParams.set('forecast_days', '1');
+
+    const response = await fetch(url.toString(), {
+      headers: {
+        accept: 'application/json',
+        'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Forecast request failed with status ${response.status}`);
+    }
+
+    const json = await response.json();
+    const hourlyProbability = Array.isArray(json?.hourly?.precipitation_probability)
+      ? json.hourly.precipitation_probability
+      : [];
+    const forecastProbability = Number(hourlyProbability[0] ?? json?.daily?.precipitation_probability_mean?.[0] ?? 0);
+
+    return {
+      temperature: Number(json?.current?.temperature_2m ?? 0),
+      humidity: Number(json?.current?.relative_humidity_2m ?? 0),
+      pressure: Number(json?.current?.pressure_msl ?? 0),
+      windSpeed: Number(json?.current?.wind_speed_10m ?? 0),
+      currentPrecipitation: Number(json?.current?.precipitation ?? 0),
+      forecastProbability,
+      weatherCode: Number(json?.current?.weather_code ?? 0),
+    };
+  } catch (error) {
+    console.error('Forecast fetch failed:', error);
+    return {
+      temperature: 0,
+      humidity: 0,
+      pressure: 0,
+      windSpeed: 0,
+      currentPrecipitation: 0,
+      forecastProbability: 0,
+      weatherCode: 0,
+    };
+  }
+}
+
 function toIstDateKey(timestamp) {
   const date = new Date(timestamp);
   if (Number.isNaN(date.getTime())) {
@@ -438,6 +634,37 @@ app.get('/', function(req, res) {
   res.sendFile(path.join(__dirname, '/', 'index.html'));
 });
 
+app.get('/api/rain-probability', async (req, res) => {
+  try {
+    setNoStoreHeaders(res);
+
+    const forecast = await fetchOpenMeteoForecast();
+    const historyRainfall = parseHistoryRainfall(req.query.historyRainfall);
+    const historyTrend = Number(req.query.historyTrend || (historyRainfall.length >= 2
+      ? historyRainfall[historyRainfall.length - 1] - historyRainfall[0]
+      : 0));
+
+    const result = calculateRainProbability({
+      temperature: Number(req.query.temperature ?? forecast.temperature),
+      humidity: Number(req.query.humidity ?? forecast.humidity),
+      pressure: Number(req.query.pressure ?? forecast.pressure),
+      recentRainfall: Number(req.query.recentRainfall ?? forecast.currentPrecipitation),
+      windSpeed: Number(req.query.windSpeed ?? forecast.windSpeed),
+      alertTone: String(req.query.alertTone || 'neutral'),
+      historyTrend,
+      historyRainfall,
+      forecastProbability: Number(req.query.forecastProbability ?? forecast.forecastProbability),
+      currentPrecipitation: Number(req.query.currentPrecipitation ?? forecast.currentPrecipitation),
+      weatherCode: Number(req.query.weatherCode ?? forecast.weatherCode),
+    });
+
+    res.json(result);
+  } catch (error) {
+    console.error('rain-probability route failed:', error);
+    res.json({ probability: 15, label: 'Low chance', tone: '#2e7d32', explanation: 'Rain probability is temporarily unavailable.' });
+  }
+});
+
 app.get('/api/airquality', async (req, res) => {
   try {
     // First, fetch the page to get a valid session cookie
@@ -515,3 +742,4 @@ module.exports = app;
 module.exports.parseNdmaTimestamp = parseNdmaTimestamp;
 module.exports.toIstDateKey = toIstDateKey;
 module.exports.getCurrentDayNdmaAlerts = getCurrentDayNdmaAlerts;
+module.exports.calculateRainProbability = calculateRainProbability;
