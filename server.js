@@ -758,6 +758,10 @@ app.get('/', function(req, res) {
   res.sendFile(path.join(__dirname, '/', 'index.html'));
 });
 
+app.get('/styles.css', function(req, res) {
+  res.sendFile(path.join(__dirname, 'styles.css'));
+});
+
 app.get('/api/rain-probability', async (req, res) => {
   try {
     setNoStoreHeaders(res);

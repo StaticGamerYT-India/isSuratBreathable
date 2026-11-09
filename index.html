@@ -7,11 +7,11 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌬️</text></svg>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Roboto+Slab:wght@700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wght@8..144,400;8..144,500;8..144,600;8..144,700&family=Roboto+Slab:wght@600;700&display=swap" rel="stylesheet">
     
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 
-    <style>
+    <style media="not all">
         :root {
             --light-background: #f0f2f5;
             --light-surface: #ffffff;
@@ -869,11 +869,19 @@
             }
         }
     </style>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <header>
-        <h1>Surat Ki Actual Air Quality</h1>
+    <header class="topbar">
+        <a class="brand-lockup" href="/" aria-label="Surat air quality home">
+            <span class="brand-mark material-symbols-outlined" aria-hidden="true">air</span>
+            <span>
+                <strong>Surat air</strong>
+                <small>Science Center / live station</small>
+            </span>
+        </a>
         <div class="theme-switcher">
+            <span class="mode-label">Appearance</span>
             <span class="material-symbols-outlined" aria-hidden="true">light_mode</span>
             <label class="toggle-switch">
                 <input type="checkbox" id="theme-toggle" aria-label="Toggle dark mode">
@@ -884,11 +892,26 @@
     </header>
 
     <main>
+        <section class="hero-panel" aria-labelledby="page-title">
+            <div class="hero-copy">
+                <p class="eyebrow"><span class="status-dot"></span> Surat / atmosphere report</p>
+                <h1 id="page-title">What is the city breathing today?</h1>
+                <p class="hero-summary">A clear read on the air above Surat, translated from the latest Science Center station readings.</p>
+            </div>
+            <div class="hero-orbit" aria-hidden="true">
+                <span class="orbit-icon material-symbols-outlined">air</span>
+                <span class="orbit-ring orbit-ring-one"></span>
+                <span class="orbit-ring orbit-ring-two"></span>
+                <span class="orbit-spark spark-one"></span>
+                <span class="orbit-spark spark-two"></span>
+            </div>
+        </section>
         <section id="alerts-carousel" class="card alerts-carousel" aria-label="Weather and disaster alerts">
             <div class="alerts-head">
                 <div>
-                    <h2>Live Gujarat Alerts</h2>
-                    <p>Swipe through IMD and Gujarat SDMA cards.</p>
+                    <p class="section-kicker">Signal desk</p>
+                    <h2>Live Gujarat alerts</h2>
+                    <p>Swipe through IMD and Gujarat SDMA updates.</p>
                 </div>
                 <div class="alerts-controls">
                     <button class="carousel-button" type="button" id="alerts-prev" aria-label="Previous alert">
@@ -902,14 +925,21 @@
             <div id="alerts-track" class="alerts-track" aria-live="polite"></div>
         </section>
         <div id="data-container"></div>
-        <div id="chart-container" class="card">
+        <div id="chart-container" class="card chart-card">
+            <div class="section-heading">
+                <div>
+                    <p class="section-kicker">Pattern memory</p>
+                    <h2>24-hour air story</h2>
+                </div>
+                <span class="material-symbols-outlined heading-icon" aria-hidden="true">show_chart</span>
+            </div>
             <canvas id="aqi-chart"></canvas>
         </div>
     </main>
 
     <footer>
-        <p><strong>Data Source:</strong> From the high-tech instruments at the Science Center, Surat.</p>
-        <p>This dashboard is for informational and entertainment purposes. Don't make major life decisions based on it, unless you enjoy chaos.</p>
+        <p><strong>Surat air / open reading</strong></p>
+        <p>Data from the Science Center station. For context, not a medical or emergency service.</p>
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
