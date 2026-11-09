@@ -3,6 +3,7 @@ const fetch = require('node-fetch');
 const path = require('path');
 const app = express();
 const port = 3000;
+const UPSTREAM_TIMEOUT_MS = 10000;
 const IMD_SURAT_URL = 'https://mausam.imd.gov.in/imd_latest/contents/districtwisewarnings_mc.php?id=9';
 const NDMA_SURAT_ALERTS_URL = 'https://sachet.ndma.gov.in/cap_public_website/FetchLocationWiseAlerts';
 const SURAT_ALERT_QUERY = {
@@ -28,6 +29,31 @@ function setNoStoreHeaders(res) {
     Expires: '0',
   });
 }
+
+function fetchWithTimeout(url, options = {}) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS);
+
+  return fetch(url, { ...options, signal: controller.signal })
+    .finally(() => clearTimeout(timeout));
+}
+
+function sendServiceUnavailable(res, message) {
+  setNoStoreHeaders(res);
+  res.status(503).json({ error: message });
+}
+
+app.disable('x-powered-by');
+app.use((req, res, next) => {
+  res.set({
+    'Content-Security-Policy': "default-src 'self'; connect-src 'self'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+  });
+  next();
+});
 
 function extractObjectForTitle(html, title) {
   const searchIndex = html.indexOf(`"title": "${title}"`);
@@ -142,11 +168,6 @@ function parseAlertDetails(info) {
   };
 }
 
-function parseDateOrZero(value) {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
-}
-
 function parseNdmaTimestamp(value) {
   if (!value) {
     return null;
@@ -198,18 +219,162 @@ function coerceNumber(value, fallback = 0) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+const US_AQI_BREAKPOINTS = {
+  pm25: [
+    [0, 9.0, 0, 50], [9.1, 35.4, 51, 100], [35.5, 55.4, 101, 150],
+    [55.5, 125.4, 151, 200], [125.5, 225.4, 201, 300], [225.5, 325.4, 301, 400],
+    [325.5, 500.4, 401, 500],
+  ],
+  pm10: [
+    [0, 54, 0, 50], [55, 154, 51, 100], [155, 254, 101, 150],
+    [255, 354, 151, 200], [355, 424, 201, 300], [425, 504, 301, 400],
+    [505, 604, 401, 500],
+  ],
+  so2: [
+    [0, 0.035, 0, 50], [0.036, 0.075, 51, 100], [0.076, 0.185, 101, 150],
+    [0.186, 0.304, 151, 200], [0.305, 0.604, 201, 300], [0.605, 0.804, 301, 400],
+    [0.805, 1.004, 401, 500],
+  ],
+  co: [
+    [0, 4.4, 0, 50], [4.5, 9.4, 51, 100], [9.5, 12.4, 101, 150],
+    [12.5, 15.4, 151, 200], [15.5, 30.4, 201, 300], [30.5, 40.4, 301, 400],
+    [40.5, 50.4, 401, 500],
+  ],
+};
+
+const INDIA_NAQI_BREAKPOINTS = {
+  pm25: [
+    [0, 30, 0, 50], [31, 60, 51, 100], [61, 90, 101, 200],
+    [91, 120, 201, 300], [121, 250, 301, 400], [251, 500, 401, 500],
+  ],
+  pm10: [
+    [0, 50, 0, 50], [51, 100, 51, 100], [101, 250, 101, 200],
+    [251, 350, 201, 300], [351, 430, 301, 400], [431, 1000, 401, 500],
+  ],
+  so2: [
+    [0, 40, 0, 50], [41, 80, 51, 100], [81, 380, 101, 200],
+    [381, 800, 201, 300], [801, 1600, 301, 400], [1601, 2000, 401, 500],
+  ],
+  no2: [
+    [0, 40, 0, 50], [41, 80, 51, 100], [81, 180, 101, 200],
+    [181, 280, 201, 300], [281, 400, 301, 400], [401, 1000, 401, 500],
+  ],
+  co: [
+    [0, 1, 0, 50], [1.1, 2, 51, 100], [2.1, 10, 101, 200],
+    [10.1, 17, 201, 300], [17.1, 34, 301, 400], [34.1, 50, 401, 500],
+  ],
+};
+
+function calculateSubIndex(value, breakpoints, normalize = number => number) {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue) || numericValue < 0) {
+    return null;
+  }
+
+  const concentration = normalize(numericValue);
+  const range = breakpoints.find(([low, high]) => concentration >= low && concentration <= high);
+  if (!range) {
+    return concentration > breakpoints[breakpoints.length - 1][1] ? 500 : null;
+  }
+
+  const [concentrationLow, concentrationHigh, indexLow, indexHigh] = range;
+  return Math.round(((indexHigh - indexLow) / (concentrationHigh - concentrationLow))
+    * (concentration - concentrationLow) + indexLow);
+}
+
+function truncate(value, decimalPlaces) {
+  const factor = 10 ** decimalPlaces;
+  return Math.floor(value * factor) / factor;
+}
+
+function parseStationValue(station, ...keys) {
+  for (const key of keys) {
+    if (station?.[key] === null || station?.[key] === undefined || String(station[key]).trim() === '') {
+      continue;
+    }
+    const value = Number(station?.[key]);
+    if (Number.isFinite(value)) {
+      return value;
+    }
+  }
+  return null;
+}
+
+function buildIndexResult(subIndices, unavailable, caveat) {
+  const available = Object.entries(subIndices).filter(([, value]) => value !== null);
+  const value = available.length ? Math.max(...available.map(([, index]) => index)) : null;
+  const dominant = available.find(([, index]) => index === value)?.[0] || null;
+
+  return {
+    value,
+    dominant,
+    subIndices,
+    availablePollutants: available.map(([pollutant]) => pollutant),
+    unavailablePollutants: unavailable,
+    caveat,
+  };
+}
+
+function calculateAirQualityIndices(station) {
+  const pm25 = parseStationValue(station, 'PM2_5', 'PM25');
+  const pm10 = parseStationValue(station, 'PM10');
+  const so2 = parseStationValue(station, 'So2', 'SO2');
+  const nox = parseStationValue(station, 'NOx');
+  const no2 = parseStationValue(station, 'NO2');
+  const co = parseStationValue(station, 'CO');
+  const usCoPpm = co === null ? null : co / 1145;
+  const indiaCoMg = co === null ? null : co / 1000;
+
+  const usSubIndices = {
+    pm25: calculateSubIndex(pm25, US_AQI_BREAKPOINTS.pm25, value => truncate(value, 1)),
+    pm10: calculateSubIndex(pm10, US_AQI_BREAKPOINTS.pm10, value => Math.floor(value)),
+    so2: calculateSubIndex(so2 === null ? null : so2 * 24.45 / (64.066 * 1000), US_AQI_BREAKPOINTS.so2, value => truncate(value, 3)),
+    co: calculateSubIndex(usCoPpm, US_AQI_BREAKPOINTS.co, value => truncate(value, 1)),
+  };
+  const indiaSubIndices = {
+    pm25: calculateSubIndex(pm25, INDIA_NAQI_BREAKPOINTS.pm25, value => Math.floor(value)),
+    pm10: calculateSubIndex(pm10, INDIA_NAQI_BREAKPOINTS.pm10, value => Math.floor(value)),
+    so2: calculateSubIndex(so2, INDIA_NAQI_BREAKPOINTS.so2, value => Math.floor(value)),
+    no2: calculateSubIndex(no2, INDIA_NAQI_BREAKPOINTS.no2, value => Math.floor(value)),
+    co: calculateSubIndex(indiaCoMg, INDIA_NAQI_BREAKPOINTS.co, value => truncate(value, 1)),
+  };
+
+  const indiaUnavailable = ['O3', 'NH3', 'Pb'];
+  if (no2 === null && nox !== null) {
+    indiaUnavailable.push('NO2 (API reports NOx; not interchangeable)');
+  } else if (no2 === null) {
+    indiaUnavailable.push('NO2');
+  }
+  const usUnavailable = ['O3', 'NO2', 'NH3', 'Pb'];
+  if (nox !== null) {
+    usUnavailable.push('NOx is not an EPA AQI pollutant');
+  }
+
+  return {
+    usAqi: buildIndexResult(usSubIndices, usUnavailable, 'US AQI requires pollutant averaging periods; this dashboard uses the latest station readings. CO is converted from µg/m³ to ppm using 25°C and 1 atm.'),
+    indiaNaqi: buildIndexResult(indiaSubIndices, indiaUnavailable, 'Indian NAQI requires pollutant averaging periods; this dashboard uses the latest station readings. CO is converted from µg/m³ to mg/m³.'),
+    units: { pm25: 'µg/m³', pm10: 'µg/m³', so2: 'µg/m³', co: 'µg/m³' },
+    excludedMeasurements: ['temperature', 'humidity', 'pressure', 'wind', 'rainfall', 'solar radiation'],
+  };
+}
+
 function parseHistoryRainfall(value) {
   if (Array.isArray(value)) {
     return value
       .map(item => Number(item))
-      .filter(item => Number.isFinite(item));
+      .filter(item => Number.isFinite(item))
+      .slice(-100);
   }
 
   if (typeof value === 'string') {
+    if (value.length > 4096) {
+      return [];
+    }
+
     try {
       const parsed = JSON.parse(value);
       return Array.isArray(parsed)
-        ? parsed.map(item => Number(item)).filter(item => Number.isFinite(item))
+        ? parsed.map(item => Number(item)).filter(item => Number.isFinite(item)).slice(-100)
         : [];
     } catch (error) {
       return [];
@@ -350,7 +515,7 @@ async function fetchOpenMeteoForecast() {
     url.searchParams.set('timezone', 'Asia/Kolkata');
     url.searchParams.set('forecast_days', '1');
 
-    const response = await fetch(url.toString(), {
+    const response = await fetchWithTimeout(url.toString(), {
       headers: {
         accept: 'application/json',
         'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
@@ -404,20 +569,6 @@ function toIstDateKey(timestamp) {
   }).format(date);
 }
 
-function isCurrentDayNdmaAlert(alert, referenceTime) {
-  const startTime = parseNdmaTimestamp(alert.effective_start_time || alert.published || alert.pubDate);
-  const endTime = parseNdmaTimestamp(alert.effective_end_time || alert.published || alert.pubDate);
-  const candidateTime = startTime || endTime;
-
-  if (!candidateTime) {
-    return false;
-  }
-
-  const now = referenceTime ? new Date(referenceTime).getTime() : Date.now();
-  const currentDay = toIstDateKey(now);
-  return toIstDateKey(candidateTime) === currentDay;
-}
-
 function getNdmaTone(alert) {
   const severity = normalizeText(alert.severity || alert.severity_level || alert.alert_level || alert.type || alert.disaster_type);
   const disasterType = normalizeText(alert.disaster_type || alert.type || alert.alert_type);
@@ -466,7 +617,7 @@ function getCurrentDayNdmaAlerts(alerts, referenceTime) {
 
 async function fetchGujaratRssAlerts() {
   try {
-    const response = await fetch('https://sachet.ndma.gov.in/cap_public_website/rss/rss_gujarat.xml', {
+    const response = await fetchWithTimeout('https://sachet.ndma.gov.in/cap_public_website/rss/rss_gujarat.xml', {
       headers: {
         accept: 'application/rss+xml, application/xml, text/xml, */*',
         'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
@@ -515,35 +666,6 @@ async function fetchGujaratRssAlerts() {
   }
 }
 
-function getFallbackWeatherAlert() {
-  return {
-    district: 'SURAT',
-    sourceUrl: IMD_SURAT_URL,
-    id: null,
-    title: 'SURAT',
-    color: '#FFFF00',
-    level: 'Yellow Alert',
-    tone: 'yellow',
-    description: 'Stay aware and follow updates',
-    summary: 'Weather data is temporarily unavailable. Please try again shortly.',
-    issuedDate: '',
-    issuedTime: '',
-    validUntil: '',
-    info: '',
-    balloonText: '',
-  };
-}
-
-function getFallbackNdmaResponse() {
-  return {
-    sourceUrl: NDMA_SURAT_ALERTS_URL,
-    channelTitle: 'Gujarat: CAP Disaster Alert Feeds',
-    currentItem: null,
-    hasTodayAlert: false,
-    items: [],
-  };
-}
-
 app.get('/api/weather-alert', async (req, res) => {
   try {
     setNoStoreHeaders(res);
@@ -551,7 +673,7 @@ app.get('/api/weather-alert', async (req, res) => {
     const imdUrl = new URL(IMD_SURAT_URL);
     imdUrl.searchParams.set('_', String(Date.now()));
 
-    const response = await fetch(imdUrl.toString(), {
+    const response = await fetchWithTimeout(imdUrl.toString(), {
       headers: {
         accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
@@ -585,7 +707,7 @@ app.get('/api/weather-alert', async (req, res) => {
     });
   } catch (error) {
     console.error('weather-alert route failed:', error);
-    res.json(getFallbackWeatherAlert());
+    sendServiceUnavailable(res, 'Weather alert data is temporarily unavailable.');
   }
 });
 
@@ -599,7 +721,7 @@ app.get('/api/ndma-alerts', async (req, res) => {
     });
     url.searchParams.set('_', String(Date.now()));
 
-    const response = await fetch(url, {
+    const response = await fetchWithTimeout(url, {
       method: 'POST',
       headers: {
         accept: 'application/json, text/plain, */*',
@@ -628,16 +750,9 @@ app.get('/api/ndma-alerts', async (req, res) => {
     });
   } catch (error) {
     console.error('ndma-alerts route failed:', error);
-    res.json(getFallbackNdmaResponse());
+    sendServiceUnavailable(res, 'Disaster alert data is temporarily unavailable.');
   }
 });
-
-module.exports = {
-  parseNdmaTimestamp,
-  toIstDateKey,
-};
-
-app.use(express.static(__dirname));
 
 app.get('/', function(req, res) {
   res.sendFile(path.join(__dirname, '/', 'index.html'));
@@ -677,10 +792,13 @@ app.get('/api/rain-probability', async (req, res) => {
 app.get('/api/airquality', async (req, res) => {
   try {
     // First, fetch the page to get a valid session cookie
-    const initialResponse = await fetch("https://www.suratmunicipal.gov.in/Departments/AirQualityResults");
+    const initialResponse = await fetchWithTimeout("https://www.suratmunicipal.gov.in/Departments/AirQualityResults");
+    if (!initialResponse.ok) {
+      throw new Error(`Air quality page request failed with status ${initialResponse.status}`);
+    }
     const cookie = initialResponse.headers.get('set-cookie');
 
-    let apiRes = await fetch("https://www.suratmunicipal.gov.in/Home/GetAirQualityInfoSci", {
+    let apiRes = await fetchWithTimeout("https://www.suratmunicipal.gov.in/Home/GetAirQualityInfoSci", {
       "headers": buildHeaders({
         "accept": "*/*",
         "accept-language": "en-GB,en;q=0.9",
@@ -699,23 +817,31 @@ app.get('/api/airquality', async (req, res) => {
       "body": "DeviceCode=",
       "method": "POST"
     });
+    if (!apiRes.ok) {
+      throw new Error(`Air quality request failed with status ${apiRes.status}`);
+    }
 
     let data = await apiRes.json();
-    console.log('Data from API:', JSON.stringify(data, null, 2));
+    if (data && typeof data === 'object' && data.data && typeof data.data === 'object') {
+      data.airQualityIndices = calculateAirQualityIndices(data.data);
+    }
     res.json(data);
   } catch (error) {
     console.error('airquality route failed:', error);
-    res.json({ data: null, statusText: 'OK', responseText: null, status: 200, redirectUrl: null, iTotalRecords: 0, iTotalDisplayRecords: 0 });
+    sendServiceUnavailable(res, 'Air quality data is temporarily unavailable.');
   }
 });
 
 app.get('/api/airquality/history', async (req, res) => {
   try {
     // First, fetch the page to get a valid session cookie
-    const initialResponse = await fetch("https://www.suratmunicipal.gov.in/Departments/AirQualityResults");
+    const initialResponse = await fetchWithTimeout("https://www.suratmunicipal.gov.in/Departments/AirQualityResults");
+    if (!initialResponse.ok) {
+      throw new Error(`Air quality history page request failed with status ${initialResponse.status}`);
+    }
     const cookie = initialResponse.headers.get('set-cookie');
 
-    let apiRes = await fetch("https://www.suratmunicipal.gov.in/Home/GetAirQualityInfoSciLast10", {
+    let apiRes = await fetchWithTimeout("https://www.suratmunicipal.gov.in/Home/GetAirQualityInfoSciLast10", {
       "headers": buildHeaders({
         "accept": "*/*",
         "accept-language": "en-IN,en-GB;q=0.9,en-US;q=0.8,en;q=0.7",
@@ -731,12 +857,15 @@ app.get('/api/airquality/history', async (req, res) => {
       "body": "DeviceCode=",
       "method": "POST"
     });
+    if (!apiRes.ok) {
+      throw new Error(`Air quality history request failed with status ${apiRes.status}`);
+    }
 
     let data = await apiRes.json();
     res.json(data);
   } catch (error) {
     console.error('airquality history route failed:', error);
-    res.json({ data: [] });
+    sendServiceUnavailable(res, 'Air quality history is temporarily unavailable.');
   }
 });
 
@@ -752,3 +881,4 @@ module.exports.parseNdmaTimestamp = parseNdmaTimestamp;
 module.exports.toIstDateKey = toIstDateKey;
 module.exports.getCurrentDayNdmaAlerts = getCurrentDayNdmaAlerts;
 module.exports.calculateRainProbability = calculateRainProbability;
+module.exports.calculateAirQualityIndices = calculateAirQualityIndices;

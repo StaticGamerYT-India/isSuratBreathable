@@ -538,6 +538,38 @@
         .aqi-card {
             color: #fff; /* Keep text white for all AQI colors for contrast */
         }
+        .aqi-comparison {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+            margin: 0 0 25px;
+        }
+        .aqi-method-card {
+            border: 1px solid var(--surface-variant);
+            border-radius: 12px;
+            padding: 18px;
+            background: linear-gradient(135deg, rgba(103, 80, 164, 0.08), rgba(77, 182, 172, 0.08));
+        }
+        .aqi-method-card h3 {
+            margin: 0 0 4px;
+            color: var(--primary);
+        }
+        .aqi-method-card .aqi-method-value {
+            font-size: 2.4rem;
+            font-weight: 700;
+            line-height: 1.1;
+        }
+        .aqi-method-card p {
+            margin: 8px 0 0;
+            color: var(--outline);
+            line-height: 1.45;
+            font-size: 0.9rem;
+        }
+        .aqi-method-card .aqi-coverage {
+            margin-top: 12px;
+            padding-top: 10px;
+            border-top: 1px solid var(--surface-variant);
+        }
         /* Removed static background colors for temp and humidity cards */
         .details-grid {
             display: grid;
@@ -611,6 +643,17 @@
             color: var(--primary);
             font-size: 1.1rem;
             vertical-align: middle;
+            border: 0;
+            background: transparent;
+            padding: 2px;
+            line-height: 1;
+        }
+
+        .pollutant-info-icon:focus-visible,
+        .carousel-button:focus-visible,
+        .info-box-dismiss:focus-visible {
+            outline: 3px solid var(--primary);
+            outline-offset: 2px;
         }
 
         .tooltip {
@@ -730,6 +773,10 @@
                 grid-template-columns: 1fr;
             }
 
+            .aqi-comparison {
+                grid-template-columns: 1fr;
+            }
+
             .alerts-carousel {
                 padding: 14px;
                 gap: 12px;
@@ -827,12 +874,12 @@
     <header>
         <h1>Surat Ki Actual Air Quality</h1>
         <div class="theme-switcher">
-            <span class="material-symbols-outlined">light_mode</span>
+            <span class="material-symbols-outlined" aria-hidden="true">light_mode</span>
             <label class="toggle-switch">
-                <input type="checkbox" id="theme-toggle">
+                <input type="checkbox" id="theme-toggle" aria-label="Toggle dark mode">
                 <span class="slider"></span>
             </label>
-            <span class="material-symbols-outlined">dark_mode</span>
+            <span class="material-symbols-outlined" aria-hidden="true">dark_mode</span>
         </div>
     </header>
 
@@ -845,10 +892,10 @@
                 </div>
                 <div class="alerts-controls">
                     <button class="carousel-button" type="button" id="alerts-prev" aria-label="Previous alert">
-                        <span class="material-symbols-outlined">chevron_left</span>
+                        <span class="material-symbols-outlined" aria-hidden="true">chevron_left</span>
                     </button>
                     <button class="carousel-button" type="button" id="alerts-next" aria-label="Next alert">
-                        <span class="material-symbols-outlined">chevron_right</span>
+                        <span class="material-symbols-outlined" aria-hidden="true">chevron_right</span>
                     </button>
                 </div>
             </div>
@@ -1335,65 +1382,14 @@
                         throw new Error('Unexpected API response shape');
                     }
 
-                    const breakpoints = {
-                        pm25: [
-                            { i_lo: 0, i_hi: 50, bp_lo: 0, bp_hi: 30 }, { i_lo: 51, i_hi: 100, bp_lo: 31, bp_hi: 60 },
-                            { i_lo: 101, i_hi: 200, bp_lo: 61, bp_hi: 90 }, { i_lo: 201, i_hi: 300, bp_lo: 91, bp_hi: 120 },
-                            { i_lo: 301, i_hi: 400, bp_lo: 121, bp_hi: 250 }, { i_lo: 401, i_hi: 500, bp_lo: 251, bp_hi: 500 },
-                        ],
-                        pm10: [
-                            { i_lo: 0, i_hi: 50, bp_lo: 0, bp_hi: 50 }, { i_lo: 51, i_hi: 100, bp_lo: 51, bp_hi: 100 },
-                            { i_lo: 101, i_hi: 200, bp_lo: 101, bp_hi: 250 }, { i_lo: 201, i_hi: 300, bp_lo: 251, bp_hi: 350 },
-                            { i_lo: 301, i_hi: 400, bp_lo: 351, bp_hi: 430 }, { i_lo: 401, i_hi: 500, bp_lo: 431, bp_hi: 1000 },
-                        ],
-                        so2: [
-                            { i_lo: 0, i_hi: 50, bp_lo: 0, bp_hi: 40 }, { i_lo: 51, i_hi: 100, bp_lo: 41, bp_hi: 80 },
-                            { i_lo: 101, i_hi: 200, bp_lo: 81, bp_hi: 380 }, { i_lo: 201, i_hi: 300, bp_lo: 381, bp_hi: 800 },
-                            { i_lo: 301, i_hi: 400, bp_lo: 801, bp_hi: 1600 }, { i_lo: 401, i_hi: 500, bp_lo: 1601, bp_hi: 2000 },
-                        ],
-                        nox: [
-                            { i_lo: 0, i_hi: 50, bp_lo: 0, bp_hi: 40 }, { i_lo: 51, i_hi: 100, bp_lo: 41, bp_hi: 80 },
-                            { i_lo: 101, i_hi: 200, bp_lo: 81, bp_hi: 180 }, { i_lo: 201, i_hi: 300, bp_lo: 181, bp_hi: 280 },
-                            { i_lo: 301, i_hi: 400, bp_lo: 281, bp_hi: 400 }, { i_lo: 401, i_hi: 500, bp_lo: 401, bp_hi: 1000 },
-                        ],
-                        co: [
-                            { i_lo: 0, i_hi: 50, bp_lo: 0, bp_hi: 1.0 }, { i_lo: 51, i_hi: 100, bp_lo: 1.0, bp_hi: 2.0 },
-                            { i_lo: 101, i_hi: 200, bp_lo: 2.0, bp_hi: 10 }, { i_lo: 201, i_hi: 300, bp_lo: 10, bp_hi: 17 },
-                            { i_lo: 301, i_hi: 400, bp_lo: 17, bp_hi: 34 }, { i_lo: 401, i_hi: 500, bp_lo: 34, bp_hi: 100 },
-                        ],
-                    };
-
-                    function getAqiForPollutant(concentration, pollutant) {
-                        const pollutantBreakpoints = breakpoints[pollutant];
-                        if (!pollutantBreakpoints) return 0;
-                        let range = pollutantBreakpoints.find(r => concentration >= r.bp_lo && concentration <= r.bp_hi);
-                        if (!range) {
-                            if (concentration > 0 && pollutantBreakpoints.length > 0 && concentration < pollutantBreakpoints[0].bp_lo) range = pollutantBreakpoints[0];
-                            else if (concentration > 0 && pollutantBreakpoints.length > 0 && concentration > pollutantBreakpoints[pollutantBreakpoints.length - 1].bp_hi) range = pollutantBreakpoints[pollutantBreakpoints.length - 1];
-                            else return 0;
-                        }
-                        const { i_lo, i_hi, bp_lo, bp_hi } = range;
-                        const rawAqi = Math.round(((i_hi - i_lo) / (bp_hi - bp_lo)) * (concentration - bp_lo) + i_lo);
-                        return Math.max(0, Math.min(500, rawAqi));
-                    }
-
                     const pm25 = parseFloat(station.PM2_5) || 0;
                     const pm10 = parseFloat(station.PM10) || 0;
-                    const so2 = parseFloat(station.So2) || 0;
-                    const nox = parseFloat(station.NOx) || 0;
-                    const co = parseFloat(station.CO) || 0;
-
-                    const finalAqi = Math.max(
-                        getAqiForPollutant(pm25, 'pm25'), getAqiForPollutant(pm10, 'pm10'),
-                        getAqiForPollutant(so2, 'so2'), getAqiForPollutant(nox, 'nox'),
-                        getAqiForPollutant(co, 'co')
-                    );
-
-                    const finalAqiWithoutPm10 = Math.max(
-                        getAqiForPollutant(pm25, 'pm25'),
-                        getAqiForPollutant(so2, 'so2'), getAqiForPollutant(nox, 'nox'),
-                        getAqiForPollutant(co, 'co')
-                    );
+                    const airQualityIndices = data?.airQualityIndices;
+                    if (!airQualityIndices?.indiaNaqi || !airQualityIndices?.usAqi) {
+                        throw new Error('AQI calculations are unavailable');
+                    }
+                    const finalAqi = airQualityIndices.indiaNaqi.value;
+                    const usAqi = airQualityIndices.usAqi.value;
 
                     function getAqiDetails(aqi) {
                         if (aqi <= 50) return { summary: "Awesome! Go breathe it all in.", color: "#4CAF50" };
@@ -1444,8 +1440,12 @@
                         return response.json();
                     }
 
-                    const aqiDetails = getAqiDetails(finalAqi);
-                    const aqiDetailsWithoutPm10 = getAqiDetails(finalAqiWithoutPm10);
+                    const aqiDetails = finalAqi === null
+                        ? { summary: 'Not available', color: 'var(--outline)' }
+                        : getAqiDetails(finalAqi);
+                    const usAqiDetails = usAqi === null
+                        ? { summary: 'Not available', color: 'var(--outline)' }
+                        : getAqiDetails(usAqi);
                     const ambientTemp = parseFloat(station.Ambient_Temperature) || 0;
                     const relativeHumidity = parseFloat(station.Relative_Humidity) || 0;
                     const atmosphericPressure = parseFloat(station.Atmospheric_Pressure) || 0;
@@ -1473,6 +1473,8 @@
                     });
 
                     const isPM10High = pm10 > 250;
+                    const formatIndexValue = index => index.value === null ? 'Not available' : String(index.value);
+                    const formatPollutants = pollutants => pollutants.length ? pollutants.join(', ') : 'None';
 
                     const stationDiv = document.createElement('div');
                     stationDiv.classList.add('station', 'card');
@@ -1502,23 +1504,25 @@
                         ${isPM10High ? `
                         <div class="info-box">
                            <button class="info-box-dismiss material-symbols-outlined">close</button>
-                           🤙 <strong>Quick Tip:</strong> The PM10 value is unusually high, which can spike the main AQI. This might be due to dust or baarish or other large particles. Check the "AQI (w/o PM10)".
+                           🤙 <strong>Quick Tip:</strong> The PM10 value is unusually high and can dominate both displayed indices. This might be due to dust or baarish or other large particles.
                         </div>
                         ` : ''}
                         <p class="last-updated"><strong>Last Updated:</strong> ${formattedDate} ${formattedTime}</p>
+                        <div class="aqi-comparison" aria-label="Air quality index comparison">
+                            <article class="aqi-method-card" style="border-color: ${aqiDetails.color};">
+                                <h3>Indian NAQI estimate</h3>
+                                <div class="aqi-method-value">${escapeHtml(formatIndexValue(airQualityIndices.indiaNaqi))}</div>
+                                <p>${airQualityIndices.indiaNaqi.value === null ? 'Not enough compatible pollutant data.' : escapeHtml(aqiDetails.summary)}</p>
+                                <p class="aqi-coverage"><strong>Included:</strong> ${escapeHtml(formatPollutants(airQualityIndices.indiaNaqi.availablePollutants))}<br><strong>Unavailable:</strong> ${escapeHtml(formatPollutants(airQualityIndices.indiaNaqi.unavailablePollutants))}<br>${escapeHtml(airQualityIndices.indiaNaqi.caveat)}</p>
+                            </article>
+                            <article class="aqi-method-card" style="border-color: ${usAqiDetails.color};">
+                                <h3>US EPA AQI estimate</h3>
+                                <div class="aqi-method-value">${escapeHtml(formatIndexValue(airQualityIndices.usAqi))}</div>
+                                <p>${airQualityIndices.usAqi.value === null ? 'Not enough compatible pollutant data.' : escapeHtml(usAqiDetails.summary)}</p>
+                                <p class="aqi-coverage"><strong>Included:</strong> ${escapeHtml(formatPollutants(airQualityIndices.usAqi.availablePollutants))}<br><strong>Unavailable:</strong> ${escapeHtml(formatPollutants(airQualityIndices.usAqi.unavailablePollutants))}<br>${escapeHtml(airQualityIndices.usAqi.caveat)}</p>
+                            </article>
+                        </div>
                         <div class="metrics-grid">
-                            <div class="metric-card aqi-card" style="background-color: ${aqiDetails.color};">
-                                <div class="metric-title">AQI (Overall)</div>
-                                <div class="metric-value">${finalAqi}</div>
-                                <div class="metric-desc">${aqiDetails.summary}</div>
-                            </div>
-                            ${isPM10High ? `
-                            <div class="metric-card aqi-card" style="background-color: ${aqiDetailsWithoutPm10.color};">
-                                <div class="metric-title">AQI (w/o PM10)</div>
-                                <div class="metric-value">${finalAqiWithoutPm10}</div>
-                                <div class="metric-desc">${aqiDetailsWithoutPm10.summary}</div>
-                            </div>
-                            ` : ''}
                             <div class="metric-card temp-card" style="background-color: ${tempDetails.color};">
                                 <div class="metric-title">Temperature</div>
                                 <div class="metric-value">${displayStation.Ambient_Temperature}°C</div>
@@ -1539,11 +1543,11 @@
                             <div class="pollutants">
                                 <h3>Pollutant Details</h3>
                                 <ul>
-                                    <li><strong>PM2.5:</strong> <span>${displayStation.PM2_5} µg/m³</span><span class="material-symbols-outlined pollutant-info-icon" data-pollutant="pm25">info</span></li>
-                                    <li><strong>PM10:</strong> <span>${displayStation.PM10} µg/m³</span><span class="material-symbols-outlined pollutant-info-icon" data-pollutant="pm10">info</span></li>
-                                    <li><strong>SO2:</strong> <span>${displayStation.So2} µg/m³</span><span class="material-symbols-outlined pollutant-info-icon" data-pollutant="so2">info</span></li>
-                                    <li><strong>NOx:</strong> <span>${displayStation.NOx} µg/m³</span><span class="material-symbols-outlined pollutant-info-icon" data-pollutant="nox">info</span></li>
-                                    <li><strong>CO:</strong> <span>${displayStation.CO} µg/m³</span><span class="material-symbols-outlined pollutant-info-icon" data-pollutant="co">info</span></li>
+                                    <li><strong>PM2.5:</strong> <span>${displayStation.PM2_5} µg/m³</span><button type="button" class="material-symbols-outlined pollutant-info-icon" data-pollutant="pm25" aria-label="Learn about PM2.5">info</button></li>
+                                    <li><strong>PM10:</strong> <span>${displayStation.PM10} µg/m³</span><button type="button" class="material-symbols-outlined pollutant-info-icon" data-pollutant="pm10" aria-label="Learn about PM10">info</button></li>
+                                    <li><strong>SO2:</strong> <span>${displayStation.So2} µg/m³</span><button type="button" class="material-symbols-outlined pollutant-info-icon" data-pollutant="so2" aria-label="Learn about sulfur dioxide">info</button></li>
+                                    <li><strong>NOx:</strong> <span>${displayStation.NOx} µg/m³</span><button type="button" class="material-symbols-outlined pollutant-info-icon" data-pollutant="nox" aria-label="Learn about nitrogen oxides">info</button></li>
+                                    <li><strong>CO:</strong> <span>${displayStation.CO} µg/m³</span><button type="button" class="material-symbols-outlined pollutant-info-icon" data-pollutant="co" aria-label="Learn about carbon monoxide">info</button></li>
                                 </ul>
                             </div>
                             <div class="weather">
@@ -1714,8 +1718,6 @@
 
                     window.recentWeatherHistory = data.data || [];
 
-                    window.recentWeatherHistory = data.data || [];
-
                     const ctx = document.getElementById('aqi-chart').getContext('2d');
                     if (aqiChart) {
                         aqiChart.destroy();
@@ -1734,8 +1736,7 @@
             initializeTheme();
             fetchWeatherAlert();
             fetchRssAlerts();
-            fetchData();
-            fetchHistoricalData();
+            fetchHistoricalData().finally(fetchData);
 
             setInterval(() => {
                 fetchWeatherAlert();

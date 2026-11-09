@@ -14,7 +14,8 @@ Welcome to **Surat Ki Actual Air Quality**, the only dashboard that tells you if
 ## 🚀 Features That Slap
 
 *   **Real-Time Data:** No cap, we get the freshest data from the Science Center, Surat.
-*   **Dual AQI Cards:** We show you the "Overall AQI" and a special "AQI (w/o PM10)" when it's raining, because rain makes PM10 go wild and skews the results. We got you. 🤙
+*   **Two AQI Standards:** We show Indian NAQI and US EPA AQI estimates side by side, with the included and unavailable pollutants clearly listed.
+*   **Transparent Coverage:** PM2.5, PM10, SO2, and CO are calculated from the available station fields. NOx is not substituted for NO2, and missing O3, NH3, Pb, and averaging periods are disclosed instead of guessed.
 *   **Smart UI:** The "rainy day" card and a quick tip only show up when it's actually raining. Big brain moves only.
 *   **Gen-Z Tooltips:** Click the little info icons to get the tea on pollutants like PM2.5 ("The Sneaky One") and CO ("The Silent Killer").
 *   **Dark/Light Mode:** For when you're doomscrolling at 3 AM or vibing in the sunshine. 🌞/🌚

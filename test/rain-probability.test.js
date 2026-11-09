@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { calculateRainProbability } = require('../server');
+const { calculateRainProbability, calculateAirQualityIndices } = require('../server');
 
 test('calculateRainProbability rises sharply when forecast and live rain both support it', () => {
   const result = calculateRainProbability({
@@ -38,4 +38,24 @@ test('calculateRainProbability stays conservative when skies are dry', () => {
 
   assert.equal(result.probability <= 35, true);
   assert.match(result.label.toLowerCase(), /low|unlikely/i);
+});
+
+test('calculateAirQualityIndices keeps US AQI and Indian NAQI distinct', () => {
+  const result = calculateAirQualityIndices({
+    PM2_5: '10',
+    PM10: '60',
+    So2: '50',
+    CO: '1145',
+    NOx: '80',
+    Ambient_Temperature: '28',
+    Relative_Humidity: '70',
+  });
+
+  assert.notEqual(result.usAqi.value, result.indiaNaqi.value);
+  assert.equal(result.usAqi.subIndices.pm25 > 0, true);
+  assert.equal(result.indiaNaqi.subIndices.pm10 > 0, true);
+  assert.equal(result.usAqi.subIndices.co > 0, true);
+  assert.equal(result.indiaNaqi.subIndices.co > 0, true);
+  assert.match(result.usAqi.unavailablePollutants.join(' '), /NO2.*NOx/i);
+  assert.deepEqual(result.excludedMeasurements, ['temperature', 'humidity', 'pressure', 'wind', 'rainfall', 'solar radiation']);
 });
