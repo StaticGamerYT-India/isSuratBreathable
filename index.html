@@ -872,16 +872,9 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <header class="topbar">
-        <a class="brand-lockup" href="/" aria-label="Surat air quality home">
-            <span class="brand-mark material-symbols-outlined" aria-hidden="true">air</span>
-            <span>
-                <strong>Surat air</strong>
-                <small>Science Center / live station</small>
-            </span>
-        </a>
+    <header>
+        <h1>Surat Ki Actual Air Quality</h1>
         <div class="theme-switcher">
-            <span class="mode-label">Appearance</span>
             <span class="material-symbols-outlined" aria-hidden="true">light_mode</span>
             <label class="toggle-switch">
                 <input type="checkbox" id="theme-toggle" aria-label="Toggle dark mode">
@@ -892,26 +885,11 @@
     </header>
 
     <main>
-        <section class="hero-panel" aria-labelledby="page-title">
-            <div class="hero-copy">
-                <p class="eyebrow"><span class="status-dot"></span> Surat / atmosphere report</p>
-                <h1 id="page-title">What is the city breathing today?</h1>
-                <p class="hero-summary">A clear read on the air above Surat, translated from the latest Science Center station readings.</p>
-            </div>
-            <div class="hero-orbit" aria-hidden="true">
-                <span class="orbit-icon material-symbols-outlined">air</span>
-                <span class="orbit-ring orbit-ring-one"></span>
-                <span class="orbit-ring orbit-ring-two"></span>
-                <span class="orbit-spark spark-one"></span>
-                <span class="orbit-spark spark-two"></span>
-            </div>
-        </section>
         <section id="alerts-carousel" class="card alerts-carousel" aria-label="Weather and disaster alerts">
             <div class="alerts-head">
                 <div>
-                    <p class="section-kicker">Signal desk</p>
-                    <h2>Live Gujarat alerts</h2>
-                    <p>Swipe through IMD and Gujarat SDMA updates.</p>
+                    <h2>Live Gujarat Alerts</h2>
+                    <p>Swipe through IMD and Gujarat SDMA cards.</p>
                 </div>
                 <div class="alerts-controls">
                     <button class="carousel-button" type="button" id="alerts-prev" aria-label="Previous alert">
@@ -925,21 +903,14 @@
             <div id="alerts-track" class="alerts-track" aria-live="polite"></div>
         </section>
         <div id="data-container"></div>
-        <div id="chart-container" class="card chart-card">
-            <div class="section-heading">
-                <div>
-                    <p class="section-kicker">Pattern memory</p>
-                    <h2>24-hour air story</h2>
-                </div>
-                <span class="material-symbols-outlined heading-icon" aria-hidden="true">show_chart</span>
-            </div>
+        <div id="chart-container" class="card">
             <canvas id="aqi-chart"></canvas>
         </div>
     </main>
 
     <footer>
-        <p><strong>Surat air / open reading</strong></p>
-        <p>Data from the Science Center station. For context, not a medical or emergency service.</p>
+        <p><strong>Data Source:</strong> From the high-tech instruments at the Science Center, Surat.</p>
+        <p>This dashboard is for informational and entertainment purposes. Don't make major life decisions based on it, unless you enjoy chaos.</p>
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
