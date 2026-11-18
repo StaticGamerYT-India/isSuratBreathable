@@ -872,19 +872,31 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <a class="skip-link" href="#main-content">Skip to dashboard</a>
     <header>
-        <h1>Surat Ki Actual Air Quality</h1>
-        <div class="theme-switcher">
-            <span class="material-symbols-outlined" aria-hidden="true">light_mode</span>
-            <label class="toggle-switch">
-                <input type="checkbox" id="theme-toggle" aria-label="Toggle dark mode">
-                <span class="slider"></span>
-            </label>
-            <span class="material-symbols-outlined" aria-hidden="true">dark_mode</span>
+        <div class="brand-lockup">
+            <div class="brand-mark" aria-hidden="true">
+                <span class="material-symbols-outlined">air</span>
+            </div>
+            <div>
+                <p class="brand-kicker">Surat · Gujarat</p>
+                <h1>Is Surat breathable?</h1>
+            </div>
+        </div>
+        <div class="app-bar-actions">
+            <span class="live-pill"><span class="live-dot" aria-hidden="true"></span>Live station data</span>
+            <div class="theme-switcher">
+                <span class="material-symbols-outlined" aria-hidden="true">light_mode</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="theme-toggle" aria-label="Toggle dark mode">
+                    <span class="slider"></span>
+                </label>
+                <span class="material-symbols-outlined" aria-hidden="true">dark_mode</span>
+            </div>
         </div>
     </header>
 
-    <main>
+    <main id="main-content">
         <div id="data-container"></div>
         <div id="chart-container" class="card">
             <div class="section-heading">
@@ -916,6 +928,8 @@
     </main>
 
     <footer>
+        <div class="footer-divider" aria-hidden="true"></div>
+        <p class="footer-title">A public-interest air quality dashboard with questionable jokes.</p>
         <p><strong>Data Source:</strong> From the high-tech instruments at the Science Center, Surat.</p>
         <p>This dashboard is for informational and entertainment purposes. Don't make major life decisions based on it, unless you enjoy chaos.</p>
     </footer>
