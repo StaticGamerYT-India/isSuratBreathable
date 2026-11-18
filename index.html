@@ -885,6 +885,17 @@
     </header>
 
     <main>
+        <div id="data-container"></div>
+        <div id="chart-container" class="card">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">Live pattern</p>
+                    <h2>24-hour air story</h2>
+                </div>
+                <span class="material-symbols-outlined section-heading-icon" aria-hidden="true">monitoring</span>
+            </div>
+            <canvas id="aqi-chart" aria-label="Air quality and weather trends over the last 24 hours"></canvas>
+        </div>
         <section id="alerts-carousel" class="card alerts-carousel" aria-label="Weather and disaster alerts">
             <div class="alerts-head">
                 <div>
@@ -902,10 +913,6 @@
             </div>
             <div id="alerts-track" class="alerts-track" aria-live="polite"></div>
         </section>
-        <div id="data-container"></div>
-        <div id="chart-container" class="card">
-            <canvas id="aqi-chart"></canvas>
-        </div>
     </main>
 
     <footer>
@@ -959,7 +966,7 @@
                 const isMobile = window.innerWidth <= 768;
                 const isDarkMode = body.classList.contains('dark-mode');
                 const styles = getComputedStyle(body);
-                const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+                const gridColor = styles.getPropertyValue('--md-outline-variant').trim();
                 const textColor = styles.getPropertyValue('--on-surface').trim();
                 const titleColor = styles.getPropertyValue('--primary').trim();
 
@@ -1393,26 +1400,26 @@
                     const usAqi = airQualityIndices.usAqi.value;
 
                     function getAqiDetails(aqi) {
-                        if (aqi <= 50) return { summary: "Awesome! Go breathe it all in.", color: "#4CAF50" };
-                        if (aqi <= 100) return { summary: "Theek hai matlab kya hi kar sakte hai", color: "#9CCC65" };
-                        if (aqi <= 200) return { summary: "A bit spicy. Maybe stay inside.", color: "#FFEB3B" };
-                        if (aqi <= 300) return { summary: "Poor. Your lungs are not happy.", color: "#FF9800" };
-                        if (aqi <= 400) return { summary: "Very Poor. Are we on Mars?", color: "#F44336" };
-                        return { summary: "Severe. Just don't breathe, Mu fulaa lo.", color: "#B71C1C" };
+                        if (aqi <= 50) return { summary: "Awesome! Go breathe it all in.", tone: "good", label: "Good" };
+                        if (aqi <= 100) return { summary: "Theek hai matlab kya hi kar sakte hai", tone: "moderate", label: "Moderate" };
+                        if (aqi <= 200) return { summary: "A bit spicy. Maybe stay inside.", tone: "sensitive", label: "Unhealthy for sensitive groups" };
+                        if (aqi <= 300) return { summary: "Poor. Your lungs are not happy.", tone: "poor", label: "Poor" };
+                        if (aqi <= 400) return { summary: "Very Poor. Are we on Mars?", tone: "very-poor", label: "Very poor" };
+                        return { summary: "Severe. Just don't breathe, Mu fulaa lo.", tone: "severe", label: "Severe" };
                     }
 
                     function getTempDetails(temp) {
-                        if (temp < 15) return { summary: "Thandi me thande pani se nahaana.", color: "#81d4fa" };
-                        if (temp < 25) return { summary: "Perfect sweater weather.", color: "#80cbc4" };
-                        if (temp < 35) return { summary: "Dumas me bhajiya wala time!", color: "#ffb74d" };
-                        return { summary: "Bafaaro thay chhe yaar", color: "#e57373" };
+                        if (temp < 15) return { summary: "Thandi me thande pani se nahaana.", tone: "cool" };
+                        if (temp < 25) return { summary: "Perfect sweater weather.", tone: "comfortable" };
+                        if (temp < 35) return { summary: "Dumas me bhajiya wala time!", tone: "warm" };
+                        return { summary: "Bafaaro thay chhe yaar", tone: "hot" };
                     }
 
                     function getHumidityDetails(humidity) {
-                        if (humidity < 30) return { summary: "The Sahara. Stay hydrated.", color: "#fff176" };
-                        if (humidity < 60) return { summary: "Just right", color: "#9575cd" };
-                        if (humidity < 80) return { summary: "A warm, wet hug.", color: "#4db6ac" };
-                        return { summary: "Saas loge to lungs me paani bhar jayega.", color: "#64b5f6" };
+                        if (humidity < 30) return { summary: "The Sahara. Stay hydrated.", tone: "dry" };
+                        if (humidity < 60) return { summary: "Just right", tone: "balanced" };
+                        if (humidity < 80) return { summary: "A warm, wet hug.", tone: "humid" };
+                        return { summary: "Saas loge to lungs me paani bhar jayega.", tone: "saturated" };
                     }
 
                     async function getRainProbabilityFromServer(payload) {
@@ -1442,10 +1449,10 @@
                     }
 
                     const aqiDetails = finalAqi === null
-                        ? { summary: 'Not available', color: 'var(--outline)' }
+                        ? { summary: 'Not available', tone: 'unknown', label: 'Unavailable' }
                         : getAqiDetails(finalAqi);
                     const usAqiDetails = usAqi === null
-                        ? { summary: 'Not available', color: 'var(--outline)' }
+                        ? { summary: 'Not available', tone: 'unknown', label: 'Unavailable' }
                         : getAqiDetails(usAqi);
                     const ambientTemp = parseFloat(station.Ambient_Temperature) || 0;
                     const relativeHumidity = parseFloat(station.Relative_Humidity) || 0;
@@ -1476,6 +1483,7 @@
                     const isPM10High = pm10 > 250;
                     const formatIndexValue = index => index.value === null ? 'Not available' : String(index.value);
                     const formatPollutants = pollutants => pollutants.length ? pollutants.join(', ') : 'None';
+                    const primaryPollutant = pm25 >= pm10 ? 'PM2.5' : 'PM10';
 
                     const stationDiv = document.createElement('div');
                     stationDiv.classList.add('station', 'card');
@@ -1509,14 +1517,30 @@
                         </div>
                         ` : ''}
                         <p class="last-updated"><strong>Last Updated:</strong> ${formattedDate} ${formattedTime}</p>
+                        <section class="aqi-hero aqi-tone-${aqiDetails.tone}" aria-labelledby="aqi-hero-title">
+                            <div class="aqi-hero-copy">
+                                <p class="eyebrow">Current air quality</p>
+                                <h3 id="aqi-hero-title">A clear answer for Surat</h3>
+                                <p class="aqi-status"><span class="status-dot" aria-hidden="true"></span>${escapeHtml(aqiDetails.label)} · ${escapeHtml(aqiDetails.summary)}</p>
+                                <p class="health-advice"><strong>Satirical health advice:</strong> ${escapeHtml(aqiDetails.summary)} Keep the mask handy; your lungs did not sign up for a city-wide experiment.</p>
+                            </div>
+                            <div class="aqi-hero-reading" aria-label="Current Indian National Air Quality Index ${escapeHtml(formatIndexValue(airQualityIndices.indiaNaqi))}">
+                                <span class="aqi-hero-value">${escapeHtml(formatIndexValue(airQualityIndices.indiaNaqi))}</span>
+                                <span class="aqi-hero-label">AQI · India NAQI</span>
+                            </div>
+                            <div class="aqi-hero-pollutant">
+                                <span class="material-symbols-outlined" aria-hidden="true">air</span>
+                                <span><strong>Main pollutant</strong><br>${primaryPollutant} · ${escapeHtml(primaryPollutant === 'PM2.5' ? String(station.PM2_5) : String(station.PM10))} µg/m³</span>
+                            </div>
+                        </section>
                         <div class="aqi-comparison" aria-label="Air quality index comparison">
-                            <article class="aqi-method-card" style="border-color: ${aqiDetails.color};">
+                            <article class="aqi-method-card aqi-tone-${aqiDetails.tone}">
                                 <h3>Indian NAQI estimate</h3>
                                 <div class="aqi-method-value">${escapeHtml(formatIndexValue(airQualityIndices.indiaNaqi))}</div>
                                 <p>${airQualityIndices.indiaNaqi.value === null ? 'Not enough compatible pollutant data.' : escapeHtml(aqiDetails.summary)}</p>
                                 <p class="aqi-coverage"><strong>Included:</strong> ${escapeHtml(formatPollutants(airQualityIndices.indiaNaqi.availablePollutants))}<br><strong>Unavailable:</strong> ${escapeHtml(formatPollutants(airQualityIndices.indiaNaqi.unavailablePollutants))}<br>${escapeHtml(airQualityIndices.indiaNaqi.caveat)}</p>
                             </article>
-                            <article class="aqi-method-card" style="border-color: ${usAqiDetails.color};">
+                            <article class="aqi-method-card aqi-tone-${usAqiDetails.tone}">
                                 <h3>US EPA AQI estimate</h3>
                                 <div class="aqi-method-value">${escapeHtml(formatIndexValue(airQualityIndices.usAqi))}</div>
                                 <p>${airQualityIndices.usAqi.value === null ? 'Not enough compatible pollutant data.' : escapeHtml(usAqiDetails.summary)}</p>
@@ -1524,12 +1548,12 @@
                             </article>
                         </div>
                         <div class="metrics-grid">
-                            <div class="metric-card temp-card" style="background-color: ${tempDetails.color};">
+                            <div class="metric-card temp-card metric-tone-${tempDetails.tone}">
                                 <div class="metric-title">Temperature</div>
                                 <div class="metric-value">${displayStation.Ambient_Temperature}°C</div>
                                 <div class="metric-desc">${tempDetails.summary}</div>
                             </div>
-                            <div class="metric-card humidity-card" style="background-color: ${humidityDetails.color};">
+                            <div class="metric-card humidity-card metric-tone-${humidityDetails.tone}">
                                 <div class="metric-title">Humidity</div>
                                 <div class="metric-value">${displayStation.Relative_Humidity}%</div>
                                 <div class="metric-desc">${humidityDetails.summary}</div>
@@ -1537,7 +1561,7 @@
                         </div>
                         <div class="rain-predictor">
                             <h3>Rain Probability Predictor</h3>
-                            <div class="probability-pill" style="background:${rainPrediction.tone};">${rainPrediction.probability}% · ${rainPrediction.label}</div>
+                            <div class="probability-pill">${rainPrediction.probability}% · ${rainPrediction.label}</div>
                             <div class="probability-meta">${escapeHtml(rainPrediction.explanation)} This uses live humidity, temperature, pressure, recent rainfall trend, wind, weather alerts, and Open-Meteo forecast support.</div>
                         </div>
                         <div class="details-grid">
@@ -1707,14 +1731,16 @@
                         return parseHistoryNumber(temperatureValue);
                     };
 
+                    const chartStyles = getComputedStyle(document.body);
+                    const chartColor = role => chartStyles.getPropertyValue(role).trim();
                     const datasets = [
-                        { label: 'PM2.5', data: data.data.map(d => d.PM2_5).reverse(), borderColor: '#ff6384', tension: 0.2, fill: false },
-                        { label: 'PM10', data: data.data.map(d => d.PM10).reverse(), borderColor: '#36a2eb', tension: 0.2, fill: false },
-                        { label: 'SO2', data: data.data.map(d => d.So2).reverse(), borderColor: '#ffce56', tension: 0.2, fill: false },
-                        { label: 'NOx', data: data.data.map(d => d.NOx).reverse(), borderColor: '#4bc0c0', tension: 0.2, fill: false },
-                        { label: 'CO', data: data.data.map(d => d.CO).reverse(), borderColor: '#9966ff', tension: 0.2, fill: false },
-                        { label: 'Temperature', data: data.data.map(getTemperatureValue).reverse(), borderColor: '#ff9800', backgroundColor: 'rgba(255, 152, 0, 0.12)', tension: 0.2, fill: false, yAxisID: 'yTemperature' },
-                        { label: 'Humidity', data: data.data.map(getHumidityValue).reverse(), borderColor: '#00bcd4', backgroundColor: 'rgba(0, 188, 212, 0.12)', tension: 0.2, fill: false, yAxisID: 'yHumidity' },
+                        { label: 'PM2.5', data: data.data.map(d => d.PM2_5).reverse(), borderColor: chartColor('--md-primary'), tension: 0.2, fill: false },
+                        { label: 'PM10', data: data.data.map(d => d.PM10).reverse(), borderColor: chartColor('--md-secondary'), tension: 0.2, fill: false },
+                        { label: 'SO2', data: data.data.map(d => d.So2).reverse(), borderColor: chartColor('--md-tertiary'), tension: 0.2, fill: false },
+                        { label: 'NOx', data: data.data.map(d => d.NOx).reverse(), borderColor: chartColor('--md-error'), tension: 0.2, fill: false },
+                        { label: 'CO', data: data.data.map(d => d.CO).reverse(), borderColor: chartColor('--md-on-surface-variant'), tension: 0.2, fill: false },
+                        { label: 'Temperature', data: data.data.map(getTemperatureValue).reverse(), borderColor: chartColor('--md-primary-container'), tension: 0.2, fill: false, yAxisID: 'yTemperature' },
+                        { label: 'Humidity', data: data.data.map(getHumidityValue).reverse(), borderColor: chartColor('--md-tertiary-container'), tension: 0.2, fill: false, yAxisID: 'yHumidity' },
                     ];
 
                     window.recentWeatherHistory = data.data || [];

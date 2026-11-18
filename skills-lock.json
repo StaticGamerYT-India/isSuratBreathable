@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "skills": {
+    "appllama-usage": {
+      "source": "Appllama/appllama-skills",
+      "sourceType": "github",
+      "skillPath": "skills/appllama-usage/SKILL.md",
+      "computedHash": "bb58bbb520be9fdf40d23f7bc089f426c46bb45d7a1b8a6f043d6b8ac0b3df05"
+    }
+  }
+}
