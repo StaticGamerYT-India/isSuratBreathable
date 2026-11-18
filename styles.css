@@ -193,7 +193,7 @@ body {
     color: var(--md-on-surface);
     --primary: var(--md-primary);
     --on-surface: var(--md-on-surface);
-    font-family: 'Plus Jakarta Sans', Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     transition: background-color 200ms var(--motion-standard), color 200ms var(--motion-standard);
 }
 
@@ -224,20 +224,70 @@ body.app-loading > *:not(#app-loader) {
     opacity: 0;
 }
 
-.loader-shape {
-    display: grid;
-    width: clamp(132px, 22vw, 188px);
-    height: clamp(132px, 22vw, 188px);
+.loader-art {
+    position: relative;
+    width: clamp(220px, 34vw, 300px);
+    height: clamp(220px, 34vw, 300px);
     margin-bottom: 18px;
+}
+
+.loader-shape {
+    position: absolute;
+    display: grid;
     place-items: center;
+}
+
+.loader-shape-core {
+    inset: 50px;
+    z-index: 2;
     border-radius: 48% 52% 64% 36% / 42% 38% 62% 58%;
     background: var(--md-primary);
     color: var(--md-on-primary);
-    animation: loader-morph 2800ms var(--motion-standard) infinite alternate;
+    animation: loader-core-morph 2800ms var(--motion-standard) infinite alternate;
 }
 
-.loader-shape .material-symbols-outlined {
+.loader-shape-core .material-symbols-outlined {
     font-size: clamp(42px, 7vw, 64px);
+}
+
+.loader-shape-orbit {
+    top: 18px;
+    right: 12px;
+    width: 76px;
+    height: 76px;
+    border-radius: 38% 62% 54% 46% / 58% 44% 56% 42%;
+    background: var(--md-tertiary-container);
+    animation: loader-orbit 3600ms var(--motion-standard) infinite alternate;
+}
+
+.loader-shape-spark {
+    bottom: 24px;
+    left: 18px;
+    width: 58px;
+    height: 58px;
+    border-radius: 50% 50% 42% 58% / 58% 42% 58% 42%;
+    background: var(--md-secondary-container);
+    animation: loader-spark 2400ms var(--motion-standard) infinite alternate;
+}
+
+.loader-shape-ring {
+    top: 8px;
+    left: 22px;
+    width: 46px;
+    height: 46px;
+    border: 10px solid var(--md-primary-container);
+    border-radius: 50%;
+    animation: loader-ring 3000ms var(--motion-standard) infinite alternate;
+}
+
+.loader-shape-pill {
+    right: 2px;
+    bottom: 42px;
+    width: 86px;
+    height: 30px;
+    border-radius: var(--shape-full);
+    background: var(--md-secondary);
+    animation: loader-pill 2800ms var(--motion-standard) infinite alternate;
 }
 
 .loader-kicker {
@@ -251,7 +301,8 @@ body.app-loading > *:not(#app-loader) {
 
 .loader-message {
     margin: 0;
-    font-family: 'Fraunces', Georgia, serif;
+    font-family: inherit;
+    font-weight: 600;
     font-size: clamp(1.3rem, 3vw, 1.8rem);
 }
 
@@ -274,7 +325,7 @@ body.app-loading > *:not(#app-loader) {
     animation: loader-progress 1500ms var(--motion-standard) infinite;
 }
 
-@keyframes loader-morph {
+@keyframes loader-core-morph {
     0% {
         border-radius: 48% 52% 64% 36% / 42% 38% 62% 58%;
         transform: rotate(-8deg) scale(0.94);
@@ -287,6 +338,26 @@ body.app-loading > *:not(#app-loader) {
         border-radius: 35% 65% 58% 42% / 62% 40% 60% 38%;
         transform: rotate(-2deg) scale(0.98);
     }
+}
+
+@keyframes loader-orbit {
+    from { transform: translate(0, 0) rotate(0deg) scale(0.9); }
+    to { transform: translate(-18px, 12px) rotate(24deg) scale(1.08); }
+}
+
+@keyframes loader-spark {
+    from { transform: translate(0, 0) rotate(0deg) scale(0.86); }
+    to { transform: translate(14px, -10px) rotate(-28deg) scale(1.12); }
+}
+
+@keyframes loader-ring {
+    from { transform: translate(0, 0) rotate(0deg); }
+    to { transform: translate(12px, 16px) rotate(180deg); }
+}
+
+@keyframes loader-pill {
+    from { transform: translate(0, 0) rotate(-18deg); }
+    to { transform: translate(-14px, -12px) rotate(18deg); }
 }
 
 @keyframes loader-progress {
@@ -363,7 +434,7 @@ h1, h2, h3, h4 { text-wrap: balance; }
 h1 {
     margin: 0;
     color: var(--md-on-surface);
-    font-family: 'Fraunces', Georgia, serif;
+    font-family: inherit;
     font-size: clamp(1.45rem, 3vw, 2.2rem);
     line-height: 1.05;
 }
@@ -453,7 +524,7 @@ main {
 .station > h2 {
     margin: 0;
     color: var(--md-on-surface);
-    font-family: 'Fraunces', Georgia, serif;
+    font-family: inherit;
     font-size: clamp(1.3rem, 2vw, 1.7rem);
     line-height: 1.2;
 }
@@ -502,7 +573,7 @@ main {
 .aqi-hero-copy h3 {
     max-width: 12ch;
     margin: 0;
-    font-family: 'Fraunces', Georgia, serif;
+    font-family: inherit;
     font-size: clamp(1.9rem, 4vw, 3.8rem);
     line-height: 0.98;
 }
@@ -530,7 +601,7 @@ main {
     text-align: center;
 }
 .aqi-hero-value {
-    font-family: 'Fraunces', Georgia, serif;
+    font-family: inherit;
     font-size: clamp(5rem, 12vw, 9.5rem);
     font-weight: 700;
     line-height: 0.82;
@@ -597,7 +668,7 @@ main {
 }
 .aqi-method-card h3 { margin: 0 0 12px; font-size: 0.95rem; line-height: 1.3; }
 .aqi-method-value {
-    font-family: 'Fraunces', Georgia, serif;
+    font-family: inherit;
     font-size: clamp(2.6rem, 6vw, 4.2rem);
     font-weight: 600;
     line-height: 0.9;
@@ -625,7 +696,7 @@ main {
 }
 .metric-card .metric-value {
     margin: 16px 0 7px;
-    font-family: 'Fraunces', Georgia, serif;
+    font-family: inherit;
     font-size: clamp(2.1rem, 5vw, 3.5rem);
     font-weight: 600;
     line-height: 0.9;
@@ -712,7 +783,7 @@ main {
 }
 .section-heading h2 {
     margin: 0;
-    font-family: 'Fraunces', Georgia, serif;
+    font-family: inherit;
     font-size: clamp(1.25rem, 2vw, 1.6rem);
 }
 .section-heading-icon { color: var(--md-primary); font-size: 30px; }
@@ -743,7 +814,7 @@ main {
 }
 .alerts-head h2 {
     margin: 0;
-    font-family: 'Fraunces', Georgia, serif;
+    font-family: inherit;
     font-size: 1.3rem;
 }
 .alerts-head p { margin: 6px 0 0; color: var(--md-on-surface-variant); font-size: 0.82rem; line-height: 1.4; }
@@ -823,7 +894,7 @@ main {
     color: var(--md-on-surface);
     box-shadow: var(--md-shadow-high);
 }
-.tooltip h4 { margin: 0 0 10px; color: var(--md-primary); font-family: 'Fraunces', Georgia, serif; font-size: 1rem; }
+.tooltip h4 { margin: 0 0 10px; color: var(--md-primary); font-family: inherit; font-size: 1rem; }
 .tooltip p { margin: 8px 0; font-size: 0.84rem; line-height: 1.45; }
 
 footer {
