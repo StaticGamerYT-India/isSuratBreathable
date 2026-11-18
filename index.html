@@ -12,8 +12,25 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
     <link rel="stylesheet" href="styles.css">
 </head>
-<body>
+<body class="app-loading" aria-busy="true">
+    <script>
+        (() => {
+            const savedTheme = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+            if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+                document.body.classList.add('dark-mode');
+            }
+        })();
+    </script>
     <a class="skip-link" href="#main-content">Skip to dashboard</a>
+    <div id="app-loader" class="app-loader" role="status" aria-live="polite">
+        <div class="loader-shape" aria-hidden="true">
+            <span class="material-symbols-outlined">air</span>
+        </div>
+        <p class="loader-kicker">Surat air desk</p>
+        <p class="loader-message">Reading the city's air…</p>
+        <span class="loader-progress" aria-hidden="true"></span>
+    </div>
     <header>
         <div class="brand-lockup">
             <div class="brand-mark" aria-hidden="true">
@@ -114,6 +131,17 @@
                 themeToggle.addEventListener('change', () => {
                     applyTheme(themeToggle.checked);
                 });
+            }
+
+            function finishLoading() {
+                body.classList.remove('app-loading');
+                body.setAttribute('aria-busy', 'false');
+                const loader = document.getElementById('app-loader');
+                if (loader) {
+                    loader.setAttribute('aria-hidden', 'true');
+                    loader.classList.add('is-exiting');
+                    window.setTimeout(() => loader.remove(), 300);
+                }
             }
 
             // --- CHARTING LOGIC ---
@@ -921,9 +949,11 @@
 
             // --- INITIALIZATION ---
             initializeTheme();
-            fetchWeatherAlert();
-            fetchRssAlerts();
-            fetchHistoricalData().finally(fetchData);
+            Promise.allSettled([
+                fetchWeatherAlert(),
+                fetchRssAlerts(),
+                fetchHistoricalData(),
+            ]).then(() => fetchData()).finally(finishLoading);
 
             setInterval(() => {
                 fetchWeatherAlert();
