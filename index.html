@@ -25,11 +25,7 @@
     <a class="skip-link" href="#main-content">Skip to dashboard</a>
     <div id="app-loader" class="app-loader" role="status" aria-live="polite">
         <div class="loader-art" aria-hidden="true">
-            <span class="loader-shape loader-shape-orbit"></span>
-            <span class="loader-shape loader-shape-spark"></span>
-            <span class="loader-shape loader-shape-ring"></span>
-            <span class="loader-shape loader-shape-pill"></span>
-            <span class="loader-shape loader-shape-core">
+            <span class="loader-morph-shape">
                 <span class="material-symbols-outlined">air</span>
             </span>
         </div>
@@ -715,7 +711,7 @@
                             <div class="aqi-hero-copy">
                                 <p class="eyebrow">Current air quality</p>
                                 <h3 id="aqi-hero-title">A clear answer for Surat</h3>
-                                <p class="aqi-status"><span class="status-dot" aria-hidden="true"></span>${escapeHtml(aqiDetails.label)} · ${escapeHtml(aqiDetails.summary)}</p>
+                                <p class="aqi-status"><span class="status-dot" aria-hidden="true"></span>${escapeHtml(aqiDetails.label)}</p>
                                 <p class="health-advice"><strong>Satirical health advice:</strong> ${escapeHtml(aqiDetails.summary)} Keep the mask handy; your lungs did not sign up for a city-wide experiment.</p>
                             </div>
                             <div class="aqi-hero-reading" aria-label="Current Indian National Air Quality Index ${escapeHtml(formatIndexValue(airQualityIndices.indiaNaqi))}">
