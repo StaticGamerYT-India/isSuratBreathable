@@ -45,7 +45,7 @@ test('calculateAirQualityIndices keeps US AQI and Indian NAQI distinct', () => {
     PM2_5: '10',
     PM10: '60',
     So2: '50',
-    CO: '1145',
+    CO: '1.145',
     NOx: '80',
     Ambient_Temperature: '28',
     Relative_Humidity: '70',
@@ -58,4 +58,16 @@ test('calculateAirQualityIndices keeps US AQI and Indian NAQI distinct', () => {
   assert.equal(result.indiaNaqi.subIndices.co > 0, true);
   assert.match(result.usAqi.unavailablePollutants.join(' '), /NO2.*NOx/i);
   assert.deepEqual(result.excludedMeasurements, ['temperature', 'humidity', 'pressure', 'wind', 'rainfall', 'solar radiation']);
+});
+
+test('calculateAirQualityIndices rejects negative and missing pollutant values', () => {
+  const result = calculateAirQualityIndices({
+    PM2_5: '-4',
+    PM10: '',
+    So2: null,
+    CO: 'not-a-number',
+  });
+
+  assert.equal(result.usAqi.value, null);
+  assert.equal(result.indiaNaqi.value, null);
 });

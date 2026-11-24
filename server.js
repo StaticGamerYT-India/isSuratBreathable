@@ -266,6 +266,9 @@ const INDIA_NAQI_BREAKPOINTS = {
 };
 
 function calculateSubIndex(value, breakpoints, normalize = number => number) {
+  if (value === null || value === undefined || String(value).trim() === '') {
+    return null;
+  }
   const numericValue = Number(value);
   if (!Number.isFinite(numericValue) || numericValue < 0) {
     return null;
@@ -293,7 +296,7 @@ function parseStationValue(station, ...keys) {
       continue;
     }
     const value = Number(station?.[key]);
-    if (Number.isFinite(value)) {
+    if (Number.isFinite(value) && value >= 0) {
       return value;
     }
   }
@@ -321,9 +324,9 @@ function calculateAirQualityIndices(station) {
   const so2 = parseStationValue(station, 'So2', 'SO2');
   const nox = parseStationValue(station, 'NOx');
   const no2 = parseStationValue(station, 'NO2');
-  const co = parseStationValue(station, 'CO');
-  const usCoPpm = co === null ? null : co / 1145;
-  const indiaCoMg = co === null ? null : co / 1000;
+  const coMg = parseStationValue(station, 'CO');
+  const usCoPpm = coMg === null ? null : coMg * 24.45 / 28.01;
+  const indiaCoMg = coMg;
 
   const usSubIndices = {
     pm25: calculateSubIndex(pm25, US_AQI_BREAKPOINTS.pm25, value => truncate(value, 1)),
@@ -351,9 +354,9 @@ function calculateAirQualityIndices(station) {
   }
 
   return {
-    usAqi: buildIndexResult(usSubIndices, usUnavailable, 'US AQI requires pollutant averaging periods; this dashboard uses the latest station readings. CO is converted from µg/m³ to ppm using 25°C and 1 atm.'),
-    indiaNaqi: buildIndexResult(indiaSubIndices, indiaUnavailable, 'Indian NAQI requires pollutant averaging periods; this dashboard uses the latest station readings. CO is converted from µg/m³ to mg/m³.'),
-    units: { pm25: 'µg/m³', pm10: 'µg/m³', so2: 'µg/m³', co: 'µg/m³' },
+    usAqi: buildIndexResult(usSubIndices, usUnavailable, 'US AQI requires pollutant averaging periods; this dashboard uses the latest station readings. CO is assumed to be reported in mg/m³ and converted to ppm using 25°C and 1 atm.'),
+    indiaNaqi: buildIndexResult(indiaSubIndices, indiaUnavailable, 'Indian NAQI requires pollutant averaging periods; this dashboard uses the latest station readings. CO is assumed to be reported in mg/m³.'),
+    units: { pm25: 'µg/m³', pm10: 'µg/m³', so2: 'µg/m³', co: 'mg/m³' },
     excludedMeasurements: ['temperature', 'humidity', 'pressure', 'wind', 'rainfall', 'solar radiation'],
   };
 }
@@ -530,7 +533,17 @@ async function fetchOpenMeteoForecast() {
     const hourlyProbability = Array.isArray(json?.hourly?.precipitation_probability)
       ? json.hourly.precipitation_probability
       : [];
-    const forecastProbability = Number(hourlyProbability[0] ?? json?.daily?.precipitation_probability_mean?.[0] ?? 0);
+    const hourlyTime = Array.isArray(json?.hourly?.time) ? json.hourly.time : [];
+    const currentTime = String(json?.current?.time || '');
+    let forecastIndex = hourlyTime.findIndex(time => String(time) === currentTime);
+    if (forecastIndex < 0 && currentTime) {
+      const currentHour = currentTime.slice(0, 13);
+      forecastIndex = hourlyTime.findIndex(time => String(time).startsWith(currentHour));
+    }
+    if (forecastIndex < 0) {
+      forecastIndex = 0;
+    }
+    const forecastProbability = Number(hourlyProbability[forecastIndex] ?? json?.daily?.precipitation_probability_mean?.[0] ?? 0);
 
     return {
       temperature: Number(json?.current?.temperature_2m ?? 0),

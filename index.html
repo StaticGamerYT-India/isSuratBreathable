@@ -271,6 +271,20 @@
                             displayColors: true,
                             callbacks: {
                                 title: (items) => items[0]?.label || '',
+                                label: (context) => {
+                                    const units = {
+                                        'PM2.5': ' µg/m³',
+                                        'PM10': ' µg/m³',
+                                        'SO2': ' µg/m³',
+                                        'NOx': ' µg/m³',
+                                        'CO': ' mg/m³',
+                                        'Temperature': '°C',
+                                        'Humidity': '%',
+                                    };
+                                    const value = context.parsed.y;
+                                    if (!Number.isFinite(value)) return `${context.dataset.label}: Not available`;
+                                    return `${context.dataset.label}: ${value}${units[context.dataset.label] || ''}`;
+                                }
                             }
                         }
                     },
@@ -316,6 +330,10 @@
                                 callback: (value) => `${value}°C`
                             },
                             grid: { drawOnChartArea: false, color: gridColor }
+                        },
+                        yCarbonMonoxide: {
+                            display: false,
+                            grid: { drawOnChartArea: false }
                         }
                     }
                 };
@@ -664,8 +682,17 @@
                         throw new Error('Unexpected API response shape');
                     }
 
-                    const pm25 = parseFloat(station.PM2_5) || 0;
-                    const pm10 = parseFloat(station.PM10) || 0;
+                    const parseMetric = value => {
+                        if (value === null || value === undefined || String(value).trim() === '') return null;
+                        const parsed = Number(value);
+                        return Number.isFinite(parsed) ? parsed : null;
+                    };
+                    const formatMetric = (value, unit) => {
+                        const parsed = parseMetric(value);
+                        return parsed === null ? 'Not available' : `${escapeHtml(String(parsed))}${unit}`;
+                    };
+                    const pm25 = parseMetric(station.PM2_5) ?? 0;
+                    const pm10 = parseMetric(station.PM10) ?? 0;
                     const airQualityIndices = data?.airQualityIndices;
                     if (!airQualityIndices?.indiaNaqi || !airQualityIndices?.usAqi) {
                         throw new Error('AQI calculations are unavailable');
@@ -680,6 +707,15 @@
                         if (aqi <= 300) return { summary: "Poor. Your lungs are not happy.", tone: "poor", label: "Poor" };
                         if (aqi <= 400) return { summary: "Very Poor. Are we on Mars?", tone: "very-poor", label: "Very poor" };
                         return { summary: "Severe. Just don't breathe, Mu fulaa lo.", tone: "severe", label: "Severe" };
+                    }
+
+                    function getUsAqiDetails(aqi) {
+                        if (aqi <= 50) return { summary: "Air quality is satisfactory.", tone: "good", label: "Good" };
+                        if (aqi <= 100) return { summary: "Air quality is acceptable.", tone: "moderate", label: "Moderate" };
+                        if (aqi <= 150) return { summary: "Sensitive groups may experience health effects.", tone: "sensitive", label: "Unhealthy for sensitive groups" };
+                        if (aqi <= 200) return { summary: "Some members of the general public may experience health effects.", tone: "poor", label: "Unhealthy" };
+                        if (aqi <= 300) return { summary: "Health alert: everyone may experience more serious health effects.", tone: "very-poor", label: "Very unhealthy" };
+                        return { summary: "Health warning of emergency conditions.", tone: "severe", label: "Hazardous" };
                     }
 
                     function getTempDetails(temp) {
@@ -727,19 +763,23 @@
                         : getAqiDetails(finalAqi);
                     const usAqiDetails = usAqi === null
                         ? { summary: 'Not available', tone: 'unknown', label: 'Unavailable' }
-                        : getAqiDetails(usAqi);
+                        : getUsAqiDetails(usAqi);
                     body.dataset.aqiTone = aqiDetails.tone;
                     if (aqiChart) {
                         aqiChart.options = getChartOptions();
                         aqiChart.update();
                     }
-                    const ambientTemp = parseFloat(station.Ambient_Temperature) || 0;
-                    const relativeHumidity = parseFloat(station.Relative_Humidity) || 0;
-                    const atmosphericPressure = parseFloat(station.Atmospheric_Pressure) || 0;
-                    const recentRainfall = parseFloat(station.Rain_Fall) || 0;
-                    const windSpeed = parseFloat(station.Wind_Speed) || 0;
-                    const tempDetails = getTempDetails(ambientTemp);
-                    const humidityDetails = getHumidityDetails(relativeHumidity);
+                    const ambientTemp = parseMetric(station.Ambient_Temperature);
+                    const relativeHumidity = parseMetric(station.Relative_Humidity);
+                    const atmosphericPressure = parseMetric(station.Atmospheric_Pressure);
+                    const recentRainfall = parseMetric(station.Rain_Fall);
+                    const windSpeed = parseMetric(station.Wind_Speed);
+                    const tempDetails = ambientTemp === null
+                        ? { summary: "Temperature data unavailable.", tone: "balanced" }
+                        : getTempDetails(ambientTemp);
+                    const humidityDetails = relativeHumidity === null
+                        ? { summary: "Humidity data unavailable.", tone: "balanced" }
+                        : getHumidityDetails(relativeHumidity);
 
                     const historyEntries = Array.isArray(window.recentWeatherHistory) ? window.recentWeatherHistory : [];
                     const lastRainValues = historyEntries
@@ -762,7 +802,24 @@
                     const isPM10High = pm10 > 250;
                     const formatIndexValue = index => index.value === null ? 'Not available' : String(index.value);
                     const formatPollutants = pollutants => pollutants.length ? pollutants.join(', ') : 'None';
-                    const primaryPollutant = pm25 >= pm10 ? 'PM2.5' : 'PM10';
+                    const pm25ForSelection = parseMetric(station.PM2_5);
+                    const pm10ForSelection = parseMetric(station.PM10);
+                    const primaryPollutant = airQualityIndices.indiaNaqi.dominant
+                        ? ({
+                            pm25: 'PM2.5',
+                            pm10: 'PM10',
+                            so2: 'SO2',
+                            no2: 'NO2',
+                            co: 'CO',
+                        }[airQualityIndices.indiaNaqi.dominant] || null)
+                        : null;
+                    const primaryPollutantReading = {
+                        'PM2.5': [station.PM2_5, 'µg/m³'],
+                        'PM10': [station.PM10, 'µg/m³'],
+                        'SO2': [station.So2, 'µg/m³'],
+                        'NO2': [station.NO2, 'µg/m³'],
+                        'CO': [station.CO, 'mg/m³'],
+                    }[primaryPollutant];
 
                     const stationDiv = document.createElement('div');
                     stationDiv.classList.add('station', 'card');
@@ -815,7 +872,7 @@
                             </div>
                             <div class="aqi-hero-pollutant">
                                 <span class="material-symbols-outlined" aria-hidden="true">air</span>
-                                <span><strong>Main pollutant</strong><br>${primaryPollutant} · ${escapeHtml(primaryPollutant === 'PM2.5' ? String(station.PM2_5) : String(station.PM10))} µg/m³</span>
+                                <span><strong>Main pollutant</strong><br>${primaryPollutant === null || !primaryPollutantReading ? 'Not available' : `${primaryPollutant} · ${escapeHtml(String(primaryPollutantReading[0]))} ${primaryPollutantReading[1]}`}</span>
                             </div>
                         </section>
                         <div class="aqi-comparison" aria-label="Air quality index comparison">
@@ -835,12 +892,12 @@
                         <div class="metrics-grid">
                             <div class="metric-card temp-card metric-tone-${tempDetails.tone}">
                                 <div class="metric-title">Temperature</div>
-                                <div class="metric-value">${displayStation.Ambient_Temperature}°C</div>
+                                <div class="metric-value">${formatMetric(displayStation.Ambient_Temperature, '°C')}</div>
                                 <div class="metric-desc">${tempDetails.summary}</div>
                             </div>
                             <div class="metric-card humidity-card metric-tone-${humidityDetails.tone}">
                                 <div class="metric-title">Humidity</div>
-                                <div class="metric-value">${displayStation.Relative_Humidity}%</div>
+                                <div class="metric-value">${formatMetric(displayStation.Relative_Humidity, '%')}</div>
                                 <div class="metric-desc">${humidityDetails.summary}</div>
                             </div>
                         </div>
@@ -857,7 +914,7 @@
                                     <li><strong>PM10:</strong> <span>${displayStation.PM10} µg/m³</span><button type="button" class="material-symbols-outlined pollutant-info-icon" data-pollutant="pm10" aria-label="Learn about PM10">info</button></li>
                                     <li><strong>SO2:</strong> <span>${displayStation.So2} µg/m³</span><button type="button" class="material-symbols-outlined pollutant-info-icon" data-pollutant="so2" aria-label="Learn about sulfur dioxide">info</button></li>
                                     <li><strong>NOx:</strong> <span>${displayStation.NOx} µg/m³</span><button type="button" class="material-symbols-outlined pollutant-info-icon" data-pollutant="nox" aria-label="Learn about nitrogen oxides">info</button></li>
-                                    <li><strong>CO:</strong> <span>${displayStation.CO} µg/m³</span><button type="button" class="material-symbols-outlined pollutant-info-icon" data-pollutant="co" aria-label="Learn about carbon monoxide">info</button></li>
+                                    <li><strong>CO:</strong> <span>${displayStation.CO} mg/m³</span><button type="button" class="material-symbols-outlined pollutant-info-icon" data-pollutant="co" aria-label="Learn about carbon monoxide">info</button></li>
                                 </ul>
                             </div>
                             <div class="weather">
@@ -865,7 +922,7 @@
                                 <ul>
                                     <li><strong>Wind Speed:</strong> <span>${displayStation.Wind_Speed} km/h</span></li>
                                     <li><strong>Wind Direction:</strong> <span>${displayStation.Wind_Direction}°</span></li>
-                                    <li><strong>Rain Fall:</strong> <span>${displayStation.Rain_Fall} cm</span></li>
+                                    <li><strong>Rain Fall:</strong> <span>${displayStation.Rain_Fall} mm</span></li>
                                     <li><strong>Solar Radiation:</strong> <span>${displayStation.Solar_Radiation} W/m²</span></li>
                                     <li><strong>Atmospheric Pressure:</strong> <span>${displayStation.Atmospheric_Pressure} hPa</span></li>
                                 </ul>
@@ -1057,7 +1114,7 @@
                         { label: 'PM10', data: data.data.map(d => d.PM10).reverse(), borderColor: chartColor('--md-secondary'), tension: 0.2, fill: false, pointRadius: 0, pointHoverRadius: 5, pointHitRadius: 12 },
                         { label: 'SO2', data: data.data.map(d => d.So2).reverse(), borderColor: chartColor('--md-tertiary'), tension: 0.2, fill: false, pointRadius: 0, pointHoverRadius: 5, pointHitRadius: 12 },
                         { label: 'NOx', data: data.data.map(d => d.NOx).reverse(), borderColor: chartColor('--md-error'), tension: 0.2, fill: false, pointRadius: 0, pointHoverRadius: 5, pointHitRadius: 12 },
-                        { label: 'CO', data: data.data.map(d => d.CO).reverse(), borderColor: chartColor('--md-on-surface-variant'), tension: 0.2, fill: false, pointRadius: 0, pointHoverRadius: 5, pointHitRadius: 12 },
+                        { label: 'CO', data: data.data.map(d => d.CO).reverse(), borderColor: chartColor('--md-on-surface-variant'), tension: 0.2, fill: false, yAxisID: 'yCarbonMonoxide', pointRadius: 0, pointHoverRadius: 5, pointHitRadius: 12 },
                         { label: 'Temperature', data: data.data.map(getTemperatureValue).reverse(), borderColor: chartColor('--md-primary-container'), tension: 0.2, fill: false, yAxisID: 'yTemperature', pointRadius: 0, pointHoverRadius: 5, pointHitRadius: 12 },
                         { label: 'Humidity', data: data.data.map(getHumidityValue).reverse(), borderColor: chartColor('--md-tertiary-container'), tension: 0.2, fill: false, yAxisID: 'yHumidity', pointRadius: 0, pointHoverRadius: 5, pointHitRadius: 12 },
                     ];
