@@ -97,6 +97,46 @@
         </section>
     </main>
 
+    <dialog id="home-integration-dialog" class="home-dialog" aria-labelledby="home-dialog-title">
+        <div class="home-dialog-content">
+            <div class="home-dialog-heading">
+                <div>
+                    <p class="eyebrow">Home integrations</p>
+                    <h2 id="home-dialog-title">Show Surat's air in your home app</h2>
+                </div>
+                <button type="button" class="dialog-close material-symbols-outlined" id="home-dialog-close" aria-label="Close home integrations">close</button>
+            </div>
+            <p class="home-dialog-intro">This live website cannot register a HomeKit or Google Home device by itself. Use a smart-home bridge to turn this dashboard's feed into a virtual air-quality sensor.</p>
+            <div class="home-integration-options">
+                <article class="home-integration-option">
+                    <div class="home-integration-icon" aria-hidden="true"><span class="material-symbols-outlined">home</span></div>
+                    <div>
+                        <h3>Apple Home</h3>
+                        <p>Expose the feed through Home Assistant or Homebridge, then add that bridge to Apple Home.</p>
+                        <a class="text-action" href="https://www.home-assistant.io/integrations/homekit/" target="_blank" rel="noopener noreferrer">Apple Home bridge guide <span class="material-symbols-outlined" aria-hidden="true">open_in_new</span></a>
+                    </div>
+                </article>
+                <article class="home-integration-option">
+                    <div class="home-integration-icon" aria-hidden="true"><span class="material-symbols-outlined">devices_other</span></div>
+                    <div>
+                        <h3>Google Home</h3>
+                        <p>Use a Home Assistant entity or a Google Home Cloud-to-cloud integration to show these readings.</p>
+                        <a class="text-action" href="https://www.home-assistant.io/integrations/google_assistant/" target="_blank" rel="noopener noreferrer">Google Home bridge guide <span class="material-symbols-outlined" aria-hidden="true">open_in_new</span></a>
+                    </div>
+                </article>
+            </div>
+            <p class="home-dialog-note"><strong>For an automatic device:</strong> the next step is a small integration service that polls <code>/api/airquality</code> and publishes AQI, temperature, humidity, and pollutant values as virtual sensors.</p>
+            <div class="home-dialog-actions">
+                <button type="button" class="secondary-button" id="copy-airquality-endpoint">
+                    <span class="material-symbols-outlined" aria-hidden="true">content_copy</span>
+                    Copy data endpoint
+                </button>
+                <button type="button" class="primary-button" id="home-dialog-done">Done</button>
+            </div>
+            <p class="copy-feedback" id="copy-endpoint-feedback" role="status" aria-live="polite"></p>
+        </div>
+    </dialog>
+
     <footer>
         <div class="footer-divider" aria-hidden="true"></div>
         <p class="footer-title">A public-interest air quality dashboard with questionable jokes.</p>
@@ -709,7 +749,13 @@
                     };
 
                     stationDiv.innerHTML = `
-                        <h2>Science Center Se Seedha Real Time Result</h2>
+                        <div class="station-heading">
+                            <h2>Science Center Se Seedha Real Time Result</h2>
+                            <button type="button" class="secondary-button home-connect-button" id="home-connect-button">
+                                <span class="material-symbols-outlined" aria-hidden="true">add_home</span>
+                                Add to Home
+                            </button>
+                        </div>
                         ${isPM10High ? `
                         <div class="info-box">
                            <button class="info-box-dismiss material-symbols-outlined">close</button>
@@ -791,9 +837,43 @@
 
                     setupInfoBoxDismiss();
                     setupPollutantTooltips();
+                    setupHomeIntegration();
                 } catch (error) {
                     console.error("Error in fetchData:", error);
                     document.getElementById('data-container').innerHTML = `<div class="card"><p>Oops! Couldn't fetch the latest air quality gossip. The server might be taking a nap. Try again later.</p></div>`;
+                }
+
+                function setupHomeIntegration() {
+                    const dialog = document.getElementById('home-integration-dialog');
+                    const openButton = document.getElementById('home-connect-button');
+                    const closeButton = document.getElementById('home-dialog-close');
+                    const doneButton = document.getElementById('home-dialog-done');
+                    const copyButton = document.getElementById('copy-airquality-endpoint');
+                    const feedback = document.getElementById('copy-endpoint-feedback');
+
+                    if (!dialog || !openButton || !closeButton || !doneButton || !copyButton || !feedback) {
+                        console.error('Home integration controls are unavailable');
+                        return;
+                    }
+
+                    const closeDialog = () => dialog.close();
+                    openButton.addEventListener('click', () => dialog.showModal());
+                    closeButton.addEventListener('click', closeDialog);
+                    doneButton.addEventListener('click', closeDialog);
+                    dialog.addEventListener('click', event => {
+                        if (event.target === dialog) {
+                            closeDialog();
+                        }
+                    });
+                    copyButton.addEventListener('click', async () => {
+                        try {
+                            await navigator.clipboard.writeText(`${window.location.origin}/api/airquality`);
+                            feedback.textContent = 'Data endpoint copied.';
+                        } catch (error) {
+                            console.error('Unable to copy the data endpoint:', error);
+                            feedback.textContent = 'Copy failed. Use /api/airquality from this site.';
+                        }
+                    });
                 }
             }
 
