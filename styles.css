@@ -828,6 +828,38 @@ main {
     cursor: crosshair;
     touch-action: pan-y;
 }
+.chart-metrics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: -4px 0 12px;
+}
+.chart-metric-button {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border: 1px solid var(--md-outline-variant);
+    border-radius: var(--shape-full);
+    background: var(--md-surface);
+    color: var(--md-on-surface);
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+.chart-metric-button:hover {
+    border-color: var(--md-primary);
+}
+.chart-metric-button.is-hidden {
+    opacity: 0.48;
+    text-decoration: line-through;
+}
+.chart-metric-swatch {
+    width: 18px;
+    height: 3px;
+    border-radius: var(--shape-full);
+}
 .chart-error {
     margin: 16px 0 0;
     padding: 12px 14px;

@@ -76,6 +76,7 @@
                 </div>
                 <span class="material-symbols-outlined section-heading-icon" aria-hidden="true">monitoring</span>
             </div>
+            <div id="chart-metrics" class="chart-metrics" aria-label="Toggle chart metrics"></div>
             <canvas id="aqi-chart" aria-label="Air quality and weather trends over the last 24 hours"></canvas>
         </div>
         <section id="alerts-carousel" class="card alerts-carousel" aria-label="Weather and disaster alerts">
@@ -215,22 +216,6 @@
                     onHover: (event, elements, chart) => {
                         chart.canvas.style.cursor = elements.length ? 'pointer' : 'crosshair';
                     },
-                    onClick: (event, elements, chart) => {
-                        if (!elements.length) {
-                            chart.tooltip.setActiveElements([], { x: 0, y: 0 });
-                            chart.update('none');
-                            return;
-                        }
-
-                        const activeIndex = elements[0].index;
-                        const activeElements = chart.data.datasets
-                            .map((dataset, datasetIndex) => ({ datasetIndex, index: activeIndex }))
-                            .filter(element => chart.isDatasetVisible(element.datasetIndex));
-                        const nativeEvent = event.native || event;
-                        const position = Chart.helpers.getRelativePosition(nativeEvent, chart);
-                        chart.tooltip.setActiveElements(activeElements, position);
-                        chart.update('none');
-                    },
                     layout: {
                         padding: {
                             top: 8,
@@ -248,6 +233,13 @@
                         },
                         legend: {
                             position: isMobile ? 'bottom' : 'top',
+                            onClick: (event, legendItem, legend) => {
+                                const chart = legend.chart;
+                                const index = legendItem.datasetIndex;
+                                chart.setDatasetVisibility(index, !chart.isDatasetVisible(index));
+                                chart.update();
+                                syncChartMetricControls(chart);
+                            },
                             labels: {
                                 color: textColor,
                                 boxWidth: isMobile ? 10 : 12,
@@ -348,6 +340,41 @@
                 hour = hour ? hour : 12; // the hour '0' should be '12'
                 const finalMinute = String(minute).padStart(2, '0');
                 return `${hour}:${finalMinute} ${ampm}`;
+            }
+
+            function syncChartMetricControls(chart) {
+                const container = document.getElementById('chart-metrics');
+                if (!container || !chart) return;
+
+                container.querySelectorAll('.chart-metric-button').forEach(button => {
+                    const datasetIndex = Number(button.dataset.datasetIndex);
+                    const visible = chart.isDatasetVisible(datasetIndex);
+                    button.classList.toggle('is-hidden', !visible);
+                    button.setAttribute('aria-pressed', visible ? 'true' : 'false');
+                });
+            }
+
+            function buildChartMetricControls(chart) {
+                const container = document.getElementById('chart-metrics');
+                if (!container || !chart) return;
+
+                container.replaceChildren();
+                chart.data.datasets.forEach((dataset, datasetIndex) => {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'chart-metric-button';
+                    button.dataset.datasetIndex = String(datasetIndex);
+                    button.setAttribute('aria-label', `Toggle ${dataset.label}`);
+                    button.innerHTML = `<span class="chart-metric-swatch" aria-hidden="true"></span><span>${escapeHtml(dataset.label)}</span>`;
+                    button.querySelector('.chart-metric-swatch').style.backgroundColor = dataset.borderColor;
+                    button.addEventListener('click', () => {
+                        chart.setDatasetVisibility(datasetIndex, !chart.isDatasetVisible(datasetIndex));
+                        chart.update();
+                        syncChartMetricControls(chart);
+                    });
+                    container.appendChild(button);
+                });
+                syncChartMetricControls(chart);
             }
 
             function escapeHtml(value) {
@@ -1075,7 +1102,8 @@
                     const data = await response.json();
 
                     const parseHistoryNumber = (value) => {
-                        const parsed = parseFloat(value);
+                        if (value === null || value === undefined || String(value).trim() === '') return null;
+                        const parsed = Number(value);
                         return Number.isFinite(parsed) ? parsed : null;
                     };
 
@@ -1109,14 +1137,17 @@
 
                     const chartStyles = getComputedStyle(document.body);
                     const chartColor = role => chartStyles.getPropertyValue(role).trim();
+                    if (!Array.isArray(data.data) || data.data.length === 0) {
+                        throw new Error('The historical API returned no rows');
+                    }
                     const datasets = [
-                        { label: 'PM2.5', data: data.data.map(d => d.PM2_5).reverse(), borderColor: chartColor('--md-primary'), tension: 0.2, fill: false, pointRadius: 0, pointHoverRadius: 5, pointHitRadius: 12 },
-                        { label: 'PM10', data: data.data.map(d => d.PM10).reverse(), borderColor: chartColor('--md-secondary'), tension: 0.2, fill: false, pointRadius: 0, pointHoverRadius: 5, pointHitRadius: 12 },
-                        { label: 'SO2', data: data.data.map(d => d.So2).reverse(), borderColor: chartColor('--md-tertiary'), tension: 0.2, fill: false, pointRadius: 0, pointHoverRadius: 5, pointHitRadius: 12 },
-                        { label: 'NOx', data: data.data.map(d => d.NOx).reverse(), borderColor: chartColor('--md-error'), tension: 0.2, fill: false, pointRadius: 0, pointHoverRadius: 5, pointHitRadius: 12 },
-                        { label: 'CO', data: data.data.map(d => d.CO).reverse(), borderColor: chartColor('--md-on-surface-variant'), tension: 0.2, fill: false, yAxisID: 'yCarbonMonoxide', pointRadius: 0, pointHoverRadius: 5, pointHitRadius: 12 },
-                        { label: 'Temperature', data: data.data.map(getTemperatureValue).reverse(), borderColor: chartColor('--md-primary-container'), tension: 0.2, fill: false, yAxisID: 'yTemperature', pointRadius: 0, pointHoverRadius: 5, pointHitRadius: 12 },
-                        { label: 'Humidity', data: data.data.map(getHumidityValue).reverse(), borderColor: chartColor('--md-tertiary-container'), tension: 0.2, fill: false, yAxisID: 'yHumidity', pointRadius: 0, pointHoverRadius: 5, pointHitRadius: 12 },
+                        { label: 'PM2.5', data: data.data.map(d => parseHistoryNumber(d.PM2_5)).reverse(), borderColor: chartColor('--md-primary'), tension: 0.2, fill: false, spanGaps: true, pointRadius: 0, pointHoverRadius: 5, pointHitRadius: 12 },
+                        { label: 'PM10', data: data.data.map(d => parseHistoryNumber(d.PM10)).reverse(), borderColor: chartColor('--md-secondary'), tension: 0.2, fill: false, spanGaps: true, pointRadius: 0, pointHoverRadius: 5, pointHitRadius: 12 },
+                        { label: 'SO2', data: data.data.map(d => parseHistoryNumber(d.So2)).reverse(), borderColor: chartColor('--md-tertiary'), tension: 0.2, fill: false, spanGaps: true, pointRadius: 0, pointHoverRadius: 5, pointHitRadius: 12 },
+                        { label: 'NOx', data: data.data.map(d => parseHistoryNumber(d.NOx)).reverse(), borderColor: chartColor('--md-error'), tension: 0.2, fill: false, spanGaps: true, pointRadius: 0, pointHoverRadius: 5, pointHitRadius: 12 },
+                        { label: 'CO', data: data.data.map(d => parseHistoryNumber(d.CO)).reverse(), borderColor: chartColor('--md-on-surface-variant'), tension: 0.2, fill: false, spanGaps: true, yAxisID: 'yCarbonMonoxide', pointRadius: 0, pointHoverRadius: 5, pointHitRadius: 12 },
+                        { label: 'Temperature', data: data.data.map(getTemperatureValue).reverse(), borderColor: chartColor('--md-primary-container'), tension: 0.2, fill: false, spanGaps: true, yAxisID: 'yTemperature', pointRadius: 0, pointHoverRadius: 5, pointHitRadius: 12 },
+                        { label: 'Humidity', data: data.data.map(getHumidityValue).reverse(), borderColor: chartColor('--md-tertiary-container'), tension: 0.2, fill: false, spanGaps: true, yAxisID: 'yHumidity', pointRadius: 0, pointHoverRadius: 5, pointHitRadius: 12 },
                     ];
 
                     window.recentWeatherHistory = data.data || [];
@@ -1134,6 +1165,7 @@
                         data: { labels, datasets },
                         options: getChartOptions()
                     });
+                    buildChartMetricControls(aqiChart);
                 } catch (error) {
                     console.error("Error fetching historical data:", error);
                     const chartContainer = document.getElementById('chart-container');
