@@ -208,6 +208,29 @@
                 return {
                     responsive: true,
                     maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    onHover: (event, elements, chart) => {
+                        chart.canvas.style.cursor = elements.length ? 'pointer' : 'crosshair';
+                    },
+                    onClick: (event, elements, chart) => {
+                        if (!elements.length) {
+                            chart.tooltip.setActiveElements([], { x: 0, y: 0 });
+                            chart.update('none');
+                            return;
+                        }
+
+                        const activeIndex = elements[0].index;
+                        const activeElements = chart.data.datasets
+                            .map((dataset, datasetIndex) => ({ datasetIndex, index: activeIndex }))
+                            .filter(element => chart.isDatasetVisible(element.datasetIndex));
+                        const nativeEvent = event.native || event;
+                        const position = Chart.helpers.getRelativePosition(nativeEvent, chart);
+                        chart.tooltip.setActiveElements(activeElements, position);
+                        chart.update('none');
+                    },
                     layout: {
                         padding: {
                             top: 8,
@@ -232,6 +255,22 @@
                                 padding: isMobile ? 10 : 16,
                                 usePointStyle: true,
                                 pointStyle: 'line'
+                            }
+                        },
+                        tooltip: {
+                            enabled: true,
+                            mode: 'index',
+                            intersect: false,
+                            backgroundColor: isDarkMode ? '#21192b' : '#fff7ff',
+                            titleColor: textColor,
+                            bodyColor: textColor,
+                            borderColor: gridColor,
+                            borderWidth: 1,
+                            padding: 12,
+                            cornerRadius: 8,
+                            displayColors: true,
+                            callbacks: {
+                                title: (items) => items[0]?.label || '',
                             }
                         }
                     },
@@ -1014,18 +1053,22 @@
                     const chartStyles = getComputedStyle(document.body);
                     const chartColor = role => chartStyles.getPropertyValue(role).trim();
                     const datasets = [
-                        { label: 'PM2.5', data: data.data.map(d => d.PM2_5).reverse(), borderColor: chartColor('--md-primary'), tension: 0.2, fill: false },
-                        { label: 'PM10', data: data.data.map(d => d.PM10).reverse(), borderColor: chartColor('--md-secondary'), tension: 0.2, fill: false },
-                        { label: 'SO2', data: data.data.map(d => d.So2).reverse(), borderColor: chartColor('--md-tertiary'), tension: 0.2, fill: false },
-                        { label: 'NOx', data: data.data.map(d => d.NOx).reverse(), borderColor: chartColor('--md-error'), tension: 0.2, fill: false },
-                        { label: 'CO', data: data.data.map(d => d.CO).reverse(), borderColor: chartColor('--md-on-surface-variant'), tension: 0.2, fill: false },
-                        { label: 'Temperature', data: data.data.map(getTemperatureValue).reverse(), borderColor: chartColor('--md-primary-container'), tension: 0.2, fill: false, yAxisID: 'yTemperature' },
-                        { label: 'Humidity', data: data.data.map(getHumidityValue).reverse(), borderColor: chartColor('--md-tertiary-container'), tension: 0.2, fill: false, yAxisID: 'yHumidity' },
+                        { label: 'PM2.5', data: data.data.map(d => d.PM2_5).reverse(), borderColor: chartColor('--md-primary'), tension: 0.2, fill: false, pointRadius: 0, pointHoverRadius: 5, pointHitRadius: 12 },
+                        { label: 'PM10', data: data.data.map(d => d.PM10).reverse(), borderColor: chartColor('--md-secondary'), tension: 0.2, fill: false, pointRadius: 0, pointHoverRadius: 5, pointHitRadius: 12 },
+                        { label: 'SO2', data: data.data.map(d => d.So2).reverse(), borderColor: chartColor('--md-tertiary'), tension: 0.2, fill: false, pointRadius: 0, pointHoverRadius: 5, pointHitRadius: 12 },
+                        { label: 'NOx', data: data.data.map(d => d.NOx).reverse(), borderColor: chartColor('--md-error'), tension: 0.2, fill: false, pointRadius: 0, pointHoverRadius: 5, pointHitRadius: 12 },
+                        { label: 'CO', data: data.data.map(d => d.CO).reverse(), borderColor: chartColor('--md-on-surface-variant'), tension: 0.2, fill: false, pointRadius: 0, pointHoverRadius: 5, pointHitRadius: 12 },
+                        { label: 'Temperature', data: data.data.map(getTemperatureValue).reverse(), borderColor: chartColor('--md-primary-container'), tension: 0.2, fill: false, yAxisID: 'yTemperature', pointRadius: 0, pointHoverRadius: 5, pointHitRadius: 12 },
+                        { label: 'Humidity', data: data.data.map(getHumidityValue).reverse(), borderColor: chartColor('--md-tertiary-container'), tension: 0.2, fill: false, yAxisID: 'yHumidity', pointRadius: 0, pointHoverRadius: 5, pointHitRadius: 12 },
                     ];
 
                     window.recentWeatherHistory = data.data || [];
 
-                    const ctx = document.getElementById('aqi-chart').getContext('2d');
+                    const canvas = document.getElementById('aqi-chart');
+                    if (typeof Chart === 'undefined') {
+                        throw new Error('Chart.js could not be loaded');
+                    }
+                    const ctx = canvas.getContext('2d');
                     if (aqiChart) {
                         aqiChart.destroy();
                     }
@@ -1036,6 +1079,15 @@
                     });
                 } catch (error) {
                     console.error("Error fetching historical data:", error);
+                    const chartContainer = document.getElementById('chart-container');
+                    const existingError = chartContainer?.querySelector('.chart-error');
+                    if (chartContainer && !existingError) {
+                        const message = document.createElement('p');
+                        message.className = 'chart-error';
+                        message.setAttribute('role', 'status');
+                        message.textContent = 'The 24-hour chart is temporarily unavailable. Live air-quality readings are still shown above.';
+                        chartContainer.appendChild(message);
+                    }
                 }
             }
 
@@ -1051,6 +1103,18 @@
                 fetchWeatherAlert();
                 fetchRssAlerts();
             }, 5 * 60 * 1000);
+
+            let chartResizeTimer = null;
+            window.addEventListener('resize', () => {
+                window.clearTimeout(chartResizeTimer);
+                chartResizeTimer = window.setTimeout(() => {
+                    if (aqiChart) {
+                        aqiChart.resize();
+                        aqiChart.options = getChartOptions();
+                        aqiChart.update('none');
+                    }
+                }, 120);
+            });
         });
     </script>
 </body>

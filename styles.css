@@ -226,9 +226,9 @@ body.app-loading > *:not(#app-loader) {
 
 .loader-art {
     position: relative;
-    width: clamp(112px, 18vw, 132px);
-    height: clamp(112px, 18vw, 132px);
-    margin-bottom: 12px;
+    width: 40px;
+    height: 40px;
+    margin-bottom: 8px;
 }
 
 .loader-wheel {
@@ -240,16 +240,16 @@ body.app-loading > *:not(#app-loader) {
     position: absolute;
     left: 50%;
     top: 50%;
-    width: 8px;
-    height: 24px;
-    margin-left: -4px;
-    margin-top: -12px;
-    border-radius: var(--shape-full);
+    width: 3px;
+    height: 9px;
+    margin-left: -1.5px;
+    margin-top: -4.5px;
+    border-radius: 2px;
     background: var(--md-on-surface);
-    transform: rotate(calc(var(--spoke) * 30deg)) translateY(-46px);
-    transform-origin: 4px 12px;
-    animation: loader-wheel-fade 1200ms linear infinite;
-    animation-delay: calc(var(--spoke) * -100ms);
+    transform: rotate(calc(var(--spoke) * 30deg)) translateY(-15px);
+    transform-origin: 1.5px 4.5px;
+    animation: loader-wheel-fade 960ms linear infinite;
+    animation-delay: calc(var(--spoke) * -80ms);
 }
 
 @keyframes loader-wheel-fade {
@@ -825,6 +825,17 @@ main {
     width: 100% !important;
     height: 380px !important;
     max-width: 100%;
+    cursor: crosshair;
+    touch-action: pan-y;
+}
+.chart-error {
+    margin: 16px 0 0;
+    padding: 12px 14px;
+    border: 1px solid var(--md-outline-variant);
+    border-radius: var(--shape-md);
+    background: var(--md-error-container);
+    color: var(--md-on-error-container);
+    font-size: 0.86rem;
 }
 
 .alerts-carousel {
