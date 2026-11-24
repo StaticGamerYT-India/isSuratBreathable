@@ -226,33 +226,36 @@ body.app-loading > *:not(#app-loader) {
 
 .loader-art {
     position: relative;
-    width: clamp(220px, 34vw, 300px);
-    height: clamp(220px, 34vw, 300px);
-    margin-bottom: 18px;
+    width: clamp(112px, 18vw, 132px);
+    height: clamp(112px, 18vw, 132px);
+    margin-bottom: 12px;
 }
 
-.loader-morph-shape {
+.loader-wheel {
     position: absolute;
-    inset: 30px;
-    width: calc(100% - 60px);
-    height: calc(100% - 60px);
-    overflow: visible;
-    animation: loader-shape-drift 3600ms var(--motion-standard) infinite;
+    inset: 0;
 }
 
-.loader-morph-shell {
-    fill: var(--md-primary);
+.loader-wheel span {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 8px;
+    height: 24px;
+    margin-left: -4px;
+    margin-top: -12px;
+    border-radius: var(--shape-full);
+    background: var(--md-on-surface);
+    transform: rotate(calc(var(--spoke) * 30deg)) translateY(-46px);
+    transform-origin: 4px 12px;
+    animation: loader-wheel-fade 1200ms linear infinite;
+    animation-delay: calc(var(--spoke) * -100ms);
 }
 
-.loader-morph-core {
-    fill: var(--md-primary-container);
-}
-
-@keyframes loader-shape-drift {
-    0%, 100% { transform: rotate(-4deg) scale(0.96); }
-    25% { transform: rotate(4deg) scale(1); }
-    50% { transform: rotate(-7deg) scale(1.04); }
-    75% { transform: rotate(7deg) scale(1); }
+@keyframes loader-wheel-fade {
+    0%, 100% { opacity: 0.18; }
+    8% { opacity: 1; }
+    40% { opacity: 0.18; }
 }
 
 .loader-kicker {
@@ -271,28 +274,14 @@ body.app-loading > *:not(#app-loader) {
     font-size: clamp(1.3rem, 3vw, 1.8rem);
 }
 
-.loader-progress {
-    width: min(180px, 45vw);
-    height: 4px;
-    margin-top: 16px;
-    overflow: hidden;
-    border-radius: var(--shape-full);
-    background: var(--md-surface-container-highest);
-}
+@media (prefers-reduced-motion: reduce) {
+    .loader-wheel span {
+        animation: none;
+    }
 
-.loader-progress::before {
-    display: block;
-    width: 42%;
-    height: 100%;
-    content: '';
-    border-radius: inherit;
-    background: var(--md-primary);
-    animation: loader-progress 1500ms var(--motion-standard) infinite;
-}
-
-@keyframes loader-progress {
-    from { transform: translateX(-120%); }
-    to { transform: translateX(260%); }
+    .loader-wheel span:nth-child(2n) {
+        opacity: 0.5;
+    }
 }
 
 button, input { font: inherit; }
